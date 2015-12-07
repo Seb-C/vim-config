@@ -18,6 +18,11 @@ let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let javascript_enable_domhtmlcss = 1
 
+inoremap <Leader>u <C-O>:call PhpInsertUse()<CR>
+noremap <Leader>u :call PhpInsertUse()<CR>
+inoremap <Leader>e <C-O>:call PhpExpandClass()<CR>
+noremap <Leader>e :call PhpExpandClass()<CR>
+
 autocmd FileType * 
       \if &omnifunc != '' |
       \call SuperTabChain(&omnifunc, "<c-p>") |
@@ -40,9 +45,13 @@ endfor
 " :devsh command
 :command Build :!./dev.sh build
 
+" Tags builder (TODO)
+:command RefreshTags :!mkdir -p `echo ~/.vim/tag-files$PWD` && ~/.vim/patched-ctags/bin/ctags -R --PHP-kinds=+cf --fields=+aimS --languages=PHP,JavaScript -f `echo ~/.vim/tag-files$PWD/tags` ./novius-os/ ./local/ --exclude=./local/cache/ --exclude=./local/data/ 2>&1 | grep -v "ignoring null tag in"
+
+let &tags = system('printf ~/.vim/tag-files$PWD/tags')
+
 set number
 set linebreak
-set showbreak=+++
 set textwidth=100
 set showmatch
 set visualbell
