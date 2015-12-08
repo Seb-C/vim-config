@@ -1,7 +1,0 @@
-let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =5
-let g:netrw_dirhist_1='/data/www-local/web/nos_sites_work/theotokos/local/applications/theotokos_abonnements'
-let g:netrw_dirhist_2='/data/www-local/web/nos_sites_work/theotokos/local/applications/theotokos_abonnements/classes'
-let g:netrw_dirhist_3='/data/www-local/web/nos_sites_work/theotokos/local/applications/theotokos_abonnements/classes/controller'
-let g:netrw_dirhist_4='/data/www-local/web/nos_sites_work/theotokos/local/applications/theotokos_abonnements/classes/controller/admin'
-let g:netrw_dirhist_5='/data/www-local/web/nos_sites_work/theotokos/local/applications/theotokos_abonnements/classes/controller/admin/abonnements'
