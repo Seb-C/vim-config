@@ -2,6 +2,11 @@
 execute pathogen#infect()
 syntax on
 
+" Tags builder
+:command BuildTags :! ctags -R --PHP-kinds=+cif --fields=+aimS --languages=PHP,JavaScript --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=./local/applications_cloud ./novius-os ./local 2>&1 | grep -v "ignoring null tag in" | grep -v "(unknown language)"
+" Defining tag files to import
+"set tags=.idea/tags
+
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
@@ -51,12 +56,6 @@ endfor
 
 " :Devsh command
 :command BuildDevsh :!./dev.sh build
-
-" Tags builder
-:command BuildTags :!mkdir -p `echo ~/.vim/tag-files$PWD` && ~/.vim/patched-ctags/bin/ctags -R --PHP-kinds=+cf --fields=+aimS --languages=PHP,JavaScript -f `echo ~/.vim/tag-files$PWD/tags` --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=./local/applications_cloud ./novius-os ./local 2>&1 | grep -v "ignoring null tag in" | grep -v "(unknown language)"
-
-" Defining tag files to import
-let &tags = system('printf ~/.vim/tag-files$PWD/tags')
 
 " Usual vim settings
 
