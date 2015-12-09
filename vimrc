@@ -2,10 +2,11 @@
 execute pathogen#infect()
 syntax on
 
-" Tags builder
-:command BuildTags :! ctags -R --PHP-kinds=+cif --fields=+aimS --languages=PHP,JavaScript --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=./local/applications_cloud ./novius-os ./local 2>&1 | grep -v "ignoring null tag in" | grep -v "(unknown language)"
-" Defining tag files to import
-"set tags=.idea/tags
+" Tags builder (might need "apt-get install exuberant-ctags")
+let buildTagsCommand = "ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=./local/applications_cloud ./novius-os ./local"
+:command BuildTags :execute '!'.buildTagsCommand
+" Refreshing tags file on save
+autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent !'.buildTagsCommand.' &> /dev/null ' | redraw | echo "Index successfully rebuilt !"
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
