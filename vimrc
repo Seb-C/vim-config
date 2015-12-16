@@ -8,6 +8,9 @@ let buildTagsCommand = "ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent !'.buildTagsCommand.' &> /dev/null ' | redraw | echo "Index successfully rebuilt !"
 
+" Search shortcut command
+command -nargs=1 Search copen | silent grep -r '<args>' *
+
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
