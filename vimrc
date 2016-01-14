@@ -6,7 +6,7 @@ syntax on
 let buildTagsCommand = "ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=./local/applications_cloud ./novius-os ./local"
 :command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
-autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent !'.buildTagsCommand.' &> /dev/null ' | redraw | echo "Index successfully rebuilt !"
+autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.buildTagsCommand
 
 " Search shortcut command
 fu! NoviusSearch(pattern)
