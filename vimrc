@@ -10,7 +10,7 @@ autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.bu
 
 " Search shortcut command
 fu! NoviusSearch(pattern)
-  execute 'grep -r '.a:pattern.' --exclude local/cache/** --exclude tags *'
+  execute 'grep! -r '.a:pattern.' --exclude local/cache/** --exclude tags *'
   copen
   redraw!
 endfunction
