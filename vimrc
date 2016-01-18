@@ -67,7 +67,9 @@ for FILE in split(system('ls -1 /data/www-local/web/nos_sites_work/', '\n'))
 endfor
 
 " :Devsh command
+:let $TERMINAL = 'xterm'
 :command BuildDevsh :!./dev.sh build
+autocmd BufWritePost *.scss,*.js,*.css :Start ./dev.sh build
 
 " Usual vim settings
 
