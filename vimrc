@@ -90,6 +90,7 @@ set shiftwidth=4
 set smartindent
 set smarttab
 set softtabstop=4
+set shiftwidth=4
  
 set ruler
  
@@ -98,4 +99,6 @@ set backspace=indent,eol,start
 
 set noswapfile
 set mouse=a
+
+autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
