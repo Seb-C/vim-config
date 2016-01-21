@@ -19,9 +19,6 @@ command -nargs=1 Search call NoviusSearch(shellescape("<args>"))
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
-" Relative line numbers
-set relativenumber
-
 " Auto completion settings
 filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
@@ -74,6 +71,7 @@ autocmd BufWritePost *.scss,*.js,*.css :Start ./dev.sh build
 " Usual vim settings
 
 set number
+set relativenumber
 set linebreak
 set textwidth=100
 set showmatch
