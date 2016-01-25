@@ -3,14 +3,14 @@ execute pathogen#infect()
 syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = "ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data ./novius-os ./local"
+let buildTagsCommand = "ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local"
 :command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.buildTagsCommand
 
 " Search shortcut command
 fu! NoviusSearch(pattern)
-  execute 'grep! -r '.a:pattern.' --exclude local/cache/** --exclude tags *'
+  execute 'grep! -r '.a:pattern.' --exclude local/cache/** --exclude tags --exclude *.min.* *'
   copen
   redraw!
 endfunction
