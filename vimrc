@@ -3,7 +3,7 @@ execute pathogen#infect()
 syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --regex-PHP=''/^\s*namespace\s+([^;]*)/\\\1/c/'' --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local'
+let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --regex-PHP=''/^\s*namespace\s+([^;]*)/\\\\\1/c/'' --regex-PHP=''/^\s*namespace\s+([^;]*)/\1/c/'' --regex-PHP=''/class\s+([^ ]*)/\\\\\1/c/'' --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local'
 :command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.buildTagsCommand
@@ -39,18 +39,15 @@ autocmd FileType *
       \call SuperTabSetDefaultCompletionType("<c-x><c-u>") |
       \endif
 
+" Adds namespace separator for php autocompletion
+autocmd Filetype php setlocal iskeyword+=\\
+
 " Languages plugins settings
 autocmd FileType scss set iskeyword+=-
 let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
 let javascript_enable_domhtmlcss = 1
-
-" Expand/insert PHP statements with \e and \u
-inoremap <Leader>u <C-O>:call PhpInsertUse()<CR>
-noremap <Leader>u :call PhpInsertUse()<CR>
-inoremap <Leader>e <C-O>:call PhpExpandClass()<CR>
-noremap <Leader>e :call PhpExpandClass()<CR>
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
@@ -67,6 +64,10 @@ endfor
 :let $TERMINAL = 'xterm'
 :command BuildDevsh :!./dev.sh build
 autocmd BufWritePost *.scss,*.js,*.css :Start ./dev.sh build
+
+" Enable fold by indent for every language
+autocmd Syntax * setlocal foldmethod=indent
+autocmd Syntax * normal zR
 
 " Usual vim settings
 
@@ -98,9 +99,18 @@ set backspace=indent,eol,start
 set noswapfile
 set mouse=a
 
-" Enable fold by indent for every language
-autocmd Syntax * setlocal foldmethod=indent
-autocmd Syntax * normal zR
-
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
+" Expand class name or add the use tag with <C-e> and <C-u>
+function! IPhpInsertUse()
+    call PhpInsertUse()
+    call feedkeys('a',  'n')
+endfunction
+autocmd FileType php inoremap <C-u> <Esc>:call IPhpInsertUse()<CR>
+autocmd FileType php noremap <C-u> :call PhpInsertUse()<CR>
+function! IPhpExpandClass()
+    call PhpExpandClass()
+    call feedkeys('a', 'n')
+endfunction
+autocmd FileType php inoremap <C-e> <Esc>:call IPhpExpandClass()<CR>
+autocmd FileType php noremap <C-e> :call PhpExpandClass()<CR>
