@@ -3,7 +3,7 @@ execute pathogen#infect()
 syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --regex-PHP=''/^\s*namespace\s+([^;]*)/\\\\\1/c/'' --regex-PHP=''/^\s*namespace\s+([^;]*)/\1/c/'' --regex-PHP=''/class\s+([^ ]*)/\\\\\1/c/'' --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local'
+let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local'
 :command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.buildTagsCommand
@@ -38,9 +38,6 @@ autocmd FileType *
       \call SuperTabChain(&omnifunc, "<c-p>") |
       \call SuperTabSetDefaultCompletionType("<c-x><c-u>") |
       \endif
-
-" Adds namespace separator for php autocompletion
-autocmd Filetype php setlocal iskeyword+=\\
 
 " Languages plugins settings
 autocmd FileType scss set iskeyword+=-
@@ -107,10 +104,8 @@ function! IPhpInsertUse()
     call feedkeys('a',  'n')
 endfunction
 autocmd FileType php inoremap <C-u> <Esc>:call IPhpInsertUse()<CR>
-autocmd FileType php noremap <C-u> :call PhpInsertUse()<CR>
 function! IPhpExpandClass()
     call PhpExpandClass()
     call feedkeys('a', 'n')
 endfunction
 autocmd FileType php inoremap <C-e> <Esc>:call IPhpExpandClass()<CR>
-autocmd FileType php noremap <C-e> :call PhpExpandClass()<CR>
