@@ -98,5 +98,9 @@ set backspace=indent,eol,start
 set noswapfile
 set mouse=a
 
+" Enable fold by indent for every language
+autocmd Syntax * setlocal foldmethod=indent
+autocmd Syntax * normal zR
+
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
