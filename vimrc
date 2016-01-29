@@ -57,6 +57,10 @@ for FILE in split(system('ls -1 /data/www-local/web/nos_sites_work/', '\n'))
     Project '/data/www-local/web/nos_sites_work/'.FILE , FILE
 endfor
 
+" NERDTREE
+nnoremap <silent> <C-N> :NERDTreeToggle<CR>
+let NERDTreeQuitOnOpen=1
+
 " :Devsh command
 :let $TERMINAL = 'xterm'
 :command BuildDevsh :!./dev.sh build
