@@ -4,7 +4,7 @@ syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
 let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=./local/cache --exclude=./local/data --exclude=*.min.* ./novius-os ./local'
-:command BuildTags :execute '!'.buildTagsCommand
+command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'Dispatch! '.buildTagsCommand
 
@@ -22,13 +22,13 @@ let $BASH_ENV = "~/.bash_aliases"
 " Auto completion settings
 filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
-:set completeopt=longest,menuone
+set completeopt=longest,menuone
 let g:acp_EnableAtStartup = 0
-:set completeopt+=preview
+set completeopt+=preview
 autocmd FileType html,php set omnifunc=htmlcomplete#CompleteTags
 
 " Select menu item with Enter instead of <C-y>
-:inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
 " Close preview scratch window on insert leave
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
@@ -46,6 +46,7 @@ let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
 let javascript_enable_domhtmlcss = 1
+autocmd BufRead *.view.php set filetype=html
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
@@ -63,8 +64,8 @@ nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 
 " :Devsh command
-:let $TERMINAL = 'xterm'
-:command BuildDevsh :!./dev.sh build
+let $TERMINAL = 'xterm'
+command BuildDevsh :!./dev.sh build
 autocmd BufWritePost *.scss,*.js,*.css :Start ./dev.sh build
 
 " Enable fold by indent for every language
