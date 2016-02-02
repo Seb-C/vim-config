@@ -10,8 +10,8 @@ autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatc
 
 " Search shortcut command
 fu! NoviusSearch(pattern)
-  execute 'grep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude-dir=cache --exclude-dir=logs --exclude-dir=data *'
-  copen
+  execute 'lgrep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude-dir=cache --exclude-dir=logs --exclude-dir=data *'
+  lopen
   redraw!
 endfunction
 command -nargs=1 Search call NoviusSearch(shellescape("<args>"))
