@@ -55,6 +55,9 @@ nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
 
+" CtrlP plugin settings
+let g:ctrlp_regexp = 1
+
 " :Devsh command
 let $TERMINAL = 'xterm'
 command BuildDevsh :!./dev.sh build
