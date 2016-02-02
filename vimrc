@@ -52,11 +52,10 @@ let g:netrw_liststyle=3
 
 " Project plugin (configuring all nosl environments)
 set rtp+=~/.vim/bundle/vim-project/
-call project#rc("~/Code")
+let g:project_enable_welcome = 0
 let g:project_use_nerdtree = 1
-for FILE in split(system('ls -1 /data/www-local/web/nos_sites_work/', '\n'))
-    Project '/data/www-local/web/nos_sites_work/'.FILE , FILE
-endfor
+call project#rc(".")
+Project '.', 'Current Project'
 
 " NERDTREE
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
