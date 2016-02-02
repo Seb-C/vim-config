@@ -50,16 +50,10 @@ let javascript_enable_domhtmlcss = 1
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
 
-" Project plugin (configuring all nosl environments)
-set rtp+=~/.vim/bundle/vim-project/
-let g:project_enable_welcome = 0
-let g:project_use_nerdtree = 1
-call project#rc(".")
-Project '.', 'Current Project'
-
 " NERDTREE
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
+let g:NERDTreeChDirMode=2
 
 " :Devsh command
 let $TERMINAL = 'xterm'
