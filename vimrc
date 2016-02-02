@@ -69,7 +69,7 @@ autocmd Syntax * normal zR
 set number
 set relativenumber
 set linebreak
-set textwidth=100
+set textwidth=0
 set showmatch
 set visualbell
  
