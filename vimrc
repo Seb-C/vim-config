@@ -10,7 +10,7 @@ autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatc
 
 " Search shortcut command
 fu! NoviusSearch(pattern)
-  execute 'grep! -r '.a:pattern.' --exclude local/cache/** --exclude tags --exclude *.min.* *'
+  execute 'grep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude-dir=cache --exclude-dir=logs --exclude-dir=data *'
   copen
   redraw!
 endfunction
@@ -46,7 +46,6 @@ let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
 let javascript_enable_domhtmlcss = 1
-autocmd BufRead *.view.php set filetype=html
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
