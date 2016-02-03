@@ -9,12 +9,12 @@ command BuildTags :execute '!'.buildTagsCommand
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatch! '.buildTagsCommand
 
 " Search shortcut command
-fu! NoviusSearch(pattern)
+fu! SearchInProject(pattern)
   execute 'lgrep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=data *'
   lopen
   redraw!
 endfunction
-command -nargs=1 Search call NoviusSearch(shellescape("<args>"))
+command -nargs=1 Search call SearchInProject(shellescape("<args>"))
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
