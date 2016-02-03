@@ -25,7 +25,7 @@ set omnifunc=syntaxcomplete#Complete
 set completeopt=longest,menuone
 let g:acp_EnableAtStartup = 0
 set completeopt+=preview
-autocmd FileType html,php set omnifunc=htmlcomplete#CompleteTags
+autocmd FileType html set omnifunc=htmlcomplete#CompleteTags
 
 " Select menu item with Enter instead of <C-y>
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
