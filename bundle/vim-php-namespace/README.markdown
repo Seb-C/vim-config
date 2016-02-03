@@ -10,8 +10,13 @@ Automatically adds the corresponding `use` statement for the class under the cur
 
 To use this feature, add the following mappings in `~/.vimrc`:
 
-    inoremap <Leader>u <C-O>:call PhpInsertUse()<CR>
-    noremap <Leader>u :call PhpInsertUse()<CR>
+    function! IPhpInsertUse()
+        call PhpInsertUse()
+        call feedkeys('a',  'n')
+    endfunction
+    autocmd FileType php inoremap <Leader>u <Esc>:call IPhpInsertUse()<CR>
+    autocmd FileType php noremap <Leader>u :call PhpInsertUse()<CR>
+
 
 Then, hitting `\u` in normal or insert mode will import the class under the cursor.
 
@@ -26,8 +31,12 @@ Expands the class name under the cursor to its fully qualified name.
 
 To use this feature, add the following mappings  in `~/.vimrc`:
 
-    inoremap <Leader>e <C-O>:call PhpExpandClass()<CR>
-    noremap <Leader>e :call PhpExpandClass()<CR>
+    function! IPhpExpandClass()
+        call PhpExpandClass()
+        call feedkeys('a', 'n')
+    endfunction
+    autocmd FileType php inoremap <Leader>e <Esc>:call IPhpExpandClass()<CR>
+    autocmd FileType php noremap <Leader>e :call PhpExpandClass()<CR>
 
 Then, hitting `\e` in normal or insert mode will expand the class name to a fully qualified name.
 
@@ -101,7 +110,7 @@ To keep updates fast, AutoTags won't operate if the tags file exceeds 7MB. To av
 Do not forget to load both files in vim:
 
     " ~/.vimrc
-    set tags+=./tags.vendors,tags.vendors
+    set tags+=tags,tags.vendors
 
 ### Key mappings
 
