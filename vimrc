@@ -3,14 +3,14 @@ execute pathogen#infect()
 syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = 'ctags-exuberant -R --PHP-kinds=+cidfvj --fields=+aimnztS --languages=PHP --verbose=yes --exclude=cache --exclude=data --exclude=logs --exclude=''*.min.*'' --exclude=''*.log'' .'
+let buildTagsCommand = 'ctags-exuberant -R --languages=PHP,JavaScript --PHP-kinds=+cidfvj --JavaScript-kinds=+scmpv --fields=+aimnztS --verbose=yes --exclude=cache --exclude=data --exclude=logs --exclude=.git --exclude=''*.min.*'' --exclude=''*.log'' .'
 command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatch! '.buildTagsCommand
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  execute 'lgrep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=data *'
+  execute 'lgrep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data *'
   lopen
   redraw!
 endfunction
