@@ -97,13 +97,6 @@ set backspace=indent,eol,start
 set noswapfile
 set mouse=a
 
-augroup CursorLine
-    au!
-    au VimEnter,WinEnter,BufWinEnter * setlocal cursorline
-    au WinLeave * setlocal nocursorline
-augroup END
-hi CursorLine term=bold cterm=bold gui=bold
-
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
 " Expand class name or add the use tag with <C-e> and <C-u>
