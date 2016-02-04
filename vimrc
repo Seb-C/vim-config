@@ -58,11 +58,6 @@ let g:NERDTreeChDirMode=2
 " CtrlP plugin settings
 let g:ctrlp_regexp = 1
 
-" :Devsh command
-let $TERMINAL = 'xterm'
-command BuildDevsh :!./dev.sh build
-autocmd BufWritePost *.scss,*.js,*.css :Start ./dev.sh build
-
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
 autocmd Syntax * normal zR
