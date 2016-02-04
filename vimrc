@@ -35,13 +35,6 @@ inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 " Close preview scratch window on insert leave
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
-" Open autocompletion with <tab>
-autocmd FileType * 
-      \if &omnifunc != '' |
-      \call SuperTabChain(&omnifunc, "<c-p>") |
-      \call SuperTabSetDefaultCompletionType("<c-x><c-u>") |
-      \endif
-
 " Languages plugins settings
 autocmd FileType scss set iskeyword+=-
 let g:phpcomplete_parse_docblock_comments = 1
