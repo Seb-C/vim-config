@@ -13,6 +13,7 @@ fu! SearchInProject(pattern)
   execute 'lgrep! -r '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data *'
   lopen
   redraw!
+  set nowrap
 endfunction
 command -nargs=1 Search call SearchInProject(shellescape("<args>"))
 
