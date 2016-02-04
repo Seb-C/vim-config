@@ -94,10 +94,9 @@ function! IPhpInsertUse()
     call PhpInsertUse()
     call feedkeys('a',  'n')
 endfunction
-autocmd FileType php noremap <C-i> <Esc>:call IPhpInsertUse()<CR>
+autocmd FileType php noremap <C-x><C-u> <Esc>:call IPhpInsertUse()<CR>
 function! IPhpExpandClass()
     call PhpExpandClass()
     call feedkeys('a', 'n')
 endfunction
-autocmd FileType php inoremap <C-o> <Esc>:call IPhpExpandClass()<CR>
-autocmd FileType php nnoremap <C-o> <Esc>:call IPhpExpandClass()<CR>
+autocmd FileType php noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
