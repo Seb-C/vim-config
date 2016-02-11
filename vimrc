@@ -88,6 +88,14 @@ set backspace=indent,eol,start
 set noswapfile
 set mouse=a
 
+set t_Co=256
+set background=dark
+colorscheme gruvbox
+
+set noerrorbells visualbell t_vb=
+autocmd GUIEnter * set visualbell t_vb=
+set novisualbell
+
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
 " Expand class name or add the use tag with <C-e> and <C-u>
