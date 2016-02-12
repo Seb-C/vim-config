@@ -53,6 +53,8 @@ let g:NERDTreeChDirMode=2
 
 " CtrlP plugin settings
 let g:ctrlp_regexp = 1
+let g:ctrlp_follow_symlinks = 1
+let g:ctrlp_max_files = 0
 
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
