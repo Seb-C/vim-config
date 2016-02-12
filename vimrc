@@ -56,7 +56,7 @@ let g:ctrlp_regexp = 1
 
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
-autocmd Syntax * normal zR
+set foldlevel=99
 
 " Usual vim settings
 
