@@ -62,7 +62,7 @@ function! PhpFindFqcn(clazz)
                 call search('\([[:blank:]]*[[:alnum:]\\_]\)*', 'ce')
                 let end = col('.')
                 let ns = strpart(getline(line('.')), start, end-start)
-                return ns . "\\" . a:clazz
+                return "\\" . ns . "\\" . a:clazz
             else
                 return a:clazz
             endif
