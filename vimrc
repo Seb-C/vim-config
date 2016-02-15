@@ -119,3 +119,6 @@ function! IPhpExpandClass()
     call feedkeys('a', 'n')
 endfunction
 autocmd FileType php noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
+
+" Only using php lint for now
+let g:syntastic_php_checkers = ['php']
