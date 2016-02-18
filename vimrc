@@ -63,6 +63,7 @@ let g:NERDTreeChDirMode=2
 let g:ctrlp_regexp = 1
 let g:ctrlp_follow_symlinks = 1
 let g:ctrlp_max_files = 0
+let g:ctrlp_clear_cache_on_exit = 0 
 
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
@@ -105,6 +106,16 @@ colorscheme gruvbox
 set noerrorbells visualbell t_vb=
 autocmd GUIEnter * set visualbell t_vb=
 set novisualbell
+
+" Status bar
+set laststatus=2
+noremap <C-x><C-t> :TagbarToggle<CR>
+let g:airline_left_sep=''
+let g:airline_right_sep=''
+let g:airline_symbols_branch = '⇒'
+let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
+let g:airline_section_y=''
+let g:airline_section_warning=''
 
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
