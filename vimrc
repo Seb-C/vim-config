@@ -34,9 +34,10 @@ set omnifunc=syntaxcomplete#Complete
 set completeopt=longest,menuone
 let g:acp_EnableAtStartup = 0
 set completeopt+=preview
-autocmd FileType html set omnifunc=htmlcomplete#CompleteTags
-au BufRead,BufNewFile *.view.php set omnifunc=htmlcomplete#CompleteTags
-au BufRead,BufNewFile *.tpl set filetype=html
+
+" HTML and view files settings
+au BufRead,BufNewFile *.view.php,*.tpl set set filetype=phtml
+autocmd FileType html,phtml set omnifunc=htmlcomplete#CompleteTags
 
 " Select menu item with Enter instead of <C-y>
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
@@ -124,12 +125,12 @@ function! IPhpInsertUse()
     call PhpInsertUse()
     call feedkeys('a',  'n')
 endfunction
-autocmd FileType php noremap <C-x><C-u> <Esc>:call IPhpInsertUse()<CR>
+autocmd FileType php,phtml noremap <C-x><C-u> <Esc>:call IPhpInsertUse()<CR>
 function! IPhpExpandClass()
     call PhpExpandClass()
     call feedkeys('a', 'n')
 endfunction
-autocmd FileType php noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
+autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
