@@ -36,7 +36,7 @@ let g:acp_EnableAtStartup = 0
 set completeopt+=preview
 
 " HTML and view files settings
-au BufRead,BufNewFile *.view.php,*.tpl set filetype=php
+au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
 autocmd FileType html,phtml set omnifunc=htmlcomplete#CompleteTags
 
 " Select menu item with Enter instead of <C-y>
