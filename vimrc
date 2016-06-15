@@ -98,6 +98,7 @@ set undolevels=1000
 set backspace=indent,eol,start
 
 set noswapfile
+set nowritebackup
 set mouse=a
 
 set timeoutlen=100
