@@ -59,6 +59,7 @@ let g:netrw_liststyle=3
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
+let NERDTreeShowHidden=1
 
 " CtrlP plugin settings
 let g:ctrlp_regexp = 1
