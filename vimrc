@@ -51,6 +51,7 @@ let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
 let javascript_enable_domhtmlcss = 1
+let g:vim_json_syntax_conceal = 0
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
