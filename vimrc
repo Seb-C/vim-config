@@ -139,3 +139,51 @@ autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
+
+" Unmapping some keys to change my bad habits
+noremap <Insert> <NOP>
+
+" Some specific keys to make vim easier with an AZERTY keyboard
+
+" Make digits usable without maintaining the shift key
+noremap & 1
+noremap é 2
+noremap " 3
+noremap ' 4
+noremap ( 5
+noremap - 6
+noremap è 7
+noremap _ 8
+noremap ç 9
+noremap à 0
+
+" Non digits may be used with shift instead
+noremap 1 &
+noremap ? é
+noremap 3 "
+noremap 4 '
+noremap ? (
+noremap ? -
+noremap ? è
+noremap ? _
+noremap ? ç
+noremap ? à
+
+" M is not in the middle on an AZERTY keyboard, so we use K
+" instead (default = Help, but who needs help anyway ;D )
+"noremap K M
+
+" To go on a mark, use M, to save a mark, use m
+"noremap M '
+
+" Use ù to use a macro, since @ is not easy to reach on an AZERTY
+"noremap ù @
+
+
+
+
+
+
+
+
+
