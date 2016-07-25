@@ -159,15 +159,15 @@ noremap à 0
 
 " Non digits may be used with shift instead
 noremap 1 &
-noremap ? é
+noremap 2 é
 noremap 3 "
 noremap 4 '
-noremap ? (
-noremap ? -
-noremap ? è
-noremap ? _
-noremap ? ç
-noremap ? à
+noremap 5 (
+noremap 6 -
+noremap 7 è
+noremap 8 _
+noremap 9 ç
+noremap 0 à
 
 " M is not in the middle on an AZERTY keyboard, so we use K
 " instead (default = Help, but who needs help anyway ;D )
