@@ -2,7 +2,7 @@ Installation
 ============
 
 ```
-sudo apt-get install exuberant-ctags vim vim-gui-common
+sudo apt-get install exuberant-ctags vim vim-gui-common the-silver-searcher
 git clone https://github.com/Seb-C/vim-config.git ~/.vim
 ```
 

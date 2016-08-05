@@ -3,14 +3,14 @@ execute pathogen#infect()
 syntax on
 
 " Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = 'ctags-exuberant -R --languages=PHP,JavaScript --PHP-kinds=+cidfvj --JavaScript-kinds=+scmpv --fields=+aimnztS --verbose=yes --exclude=cache --exclude=data --exclude=logs --exclude=.git --exclude=dist --exclude=''*.min.*'' --exclude=''*.log'' .'
+let buildTagsCommand = 'ctags-exuberant -R --languages=PHP,JavaScript --PHP-kinds=+cidfvj --JavaScript-kinds=+scmpv --fields=+aimnztS --verbose=yes --exclude=cache --exclude=data --exclude=logs --exclude=.git --exclude=dist --exclude=''*.min.*'' --exclude=''*.log'' --exclude=node_modules .'
 command BuildTags :execute '!'.buildTagsCommand
 " Refreshing tags file on save
 autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatch! '.buildTagsCommand
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  execute 'lgrep! -R '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist *'
+  execute 'lgrep! -R '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist i--exclude-dir=node_modules *'
   lopen
   redraw!
   set nowrap
@@ -58,7 +58,11 @@ let NERDTreeShowHidden=1
 let g:ctrlp_regexp = 1
 let g:ctrlp_follow_symlinks = 1
 let g:ctrlp_max_files = 0
-let g:ctrlp_clear_cache_on_exit = 0 
+let g:ctrlp_clear_cache_on_exit = 1 
+let g:ctrlp_working_path_mode = 'w'
+if executable('ag')
+    let g:ctrlp_user_command = 'ag %s -l --nocolor --ignore-dir=node_modules -g ""'
+endif
 
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
