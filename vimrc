@@ -53,6 +53,8 @@ nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
 let NERDTreeShowHidden=1
+let NERDTreeMapOpenSplit='s'
+let NERDTreeMapOpenVSplit='v'
 
 " CtrlP plugin settings
 let g:ctrlp_regexp = 1
@@ -135,6 +137,9 @@ autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
+
+" Also clean search results when cleaning screen
+nnoremap <silent> <C-L> :noh<CR><C-L>
 
 " Unmapping some keys to change my bad habits
 noremap <Insert> <NOP>
