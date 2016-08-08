@@ -12,3 +12,12 @@ To enable bash_aliases with `:!`, you must add this line on top of your `.bash_a
 shopt -s expand_aliases"
 ```
 
+To stop the terminal from hanging on some keyboard commands (<C-s>):
+```
+stty -ixon
+```
+
+Xterm is better to be able to use vim without some keyboard commands intercepted by the terminal emulator
+```
+xterm -fa 'Monospace' -fs 9 -cr 'red'
+```
