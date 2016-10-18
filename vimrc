@@ -142,7 +142,10 @@ let g:syntastic_php_checkers = ['php']
 nnoremap <silent> <C-L> :noh<CR><C-L>
 
 " Unmapping some keys to change my bad habits
-noremap <Insert> <NOP>
+noremap <Insert> <Nop>
+inoremap <Insert> <Nop>
+noremap <Del> <Nop>
+inoremap <Del> <Nop>
 
 " Some specific keys to make vim easier with an AZERTY keyboard
 
