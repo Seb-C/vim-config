@@ -23,9 +23,8 @@ let $BASH_ENV = "~/.bash_aliases"
 " Auto completion settings
 filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
-set completeopt=longest,menuone
+set completeopt=menuone,preview
 let g:acp_EnableAtStartup = 0
-set completeopt+=preview
 
 " HTML and view files settings
 au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
@@ -48,7 +47,7 @@ let g:vim_json_syntax_conceal = 0
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
 
-" NERDTREE
+" NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
@@ -101,7 +100,7 @@ set noswapfile
 set nowritebackup
 set mouse=a
 
-set timeoutlen=100
+set timeoutlen=200
 
 set t_Co=256
 set background=dark
