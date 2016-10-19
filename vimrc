@@ -10,7 +10,7 @@ autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatc
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  execute 'lgrep! -R '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist i--exclude-dir=node_modules *'
+  execute 'lgrep! -R '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist --exclude-dir=node_modules *'
   lopen
   redraw!
   set nowrap
