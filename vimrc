@@ -15,7 +15,7 @@ fu! SearchInProject(pattern)
   redraw!
   set nowrap
 endfunction
-command -nargs=1 Search call SearchInProject(shellescape("<args>"))
+command -nargs=1 Search call SearchInProject(shellescape("<args>", 1))
 let g:syntastic_auto_loc_list=0
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
