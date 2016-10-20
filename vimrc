@@ -10,12 +10,16 @@ autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatc
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  execute 'lgrep! -R '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist --exclude-dir=node_modules *'
+  execute 'lgrep! -REo '.a:pattern.' --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist --exclude-dir=node_modules *'
   lopen
   redraw!
   set nowrap
+  setlocal modifiable
+  sort u
+  setlocal readonly
+  setlocal nomodified
 endfunction
-command -nargs=1 Search call SearchInProject(shellescape("<args>", 1))
+command -nargs=1 Search call SearchInProject(shellescape(".{0,100}<args>.{0,100}", 1))
 let g:syntastic_auto_loc_list=0
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
