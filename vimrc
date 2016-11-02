@@ -147,6 +147,10 @@ noremap <Insert> <Nop>
 inoremap <Insert> <Nop>
 noremap <Del> <Nop>
 inoremap <Del> <Nop>
+noremap <PageUp> <Nop>
+inoremap <PageUp> <Nop>
+noremap <PageDown> <Nop>
+inoremap <PageDown> <Nop>
 
 " Some specific keys to make vim easier with an AZERTY keyboard
 
