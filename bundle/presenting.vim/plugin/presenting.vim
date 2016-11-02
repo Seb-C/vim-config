@@ -41,7 +41,8 @@ function! s:Start()
   endif
   let g:presenting_vim_using = 1
 
-  tabedit _SLIDE_
+  " avoid '"_SLIDE_" [New File]' msg by using silent
+  silent tabedit _SLIDE_
   call s:ShowPage(0)
   let &filetype=s:filetype
   call s:UpdateStatusLine()
@@ -76,19 +77,21 @@ function! s:ShowPage(page_no)
   " replace content of buffer with the next page
   setlocal noreadonly
   setlocal modifiable
-  %delete _
+  " avoid "--No lines in buffer--" msg by using silent
+  silent %delete _
   call append(0, s:pages[s:page_number])
 
   " some options for the buffer
-  setlocal readonly
-  setlocal nomodifiable
   setlocal buftype=nofile
-  setlocal noswapfile
-  setlocal nonumber
-  setlocal norelativenumber
+  setlocal cmdheight=1
   setlocal nocursorcolumn
   setlocal nocursorline
-  setlocal cmdheight=1
+  setlocal nofoldenable
+  setlocal nomodifiable
+  setlocal nonumber
+  setlocal norelativenumber
+  setlocal noswapfile
+  setlocal readonly
   call s:UpdateStatusLine()
 
   " move cursor to the top

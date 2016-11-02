@@ -72,7 +72,7 @@ function! g:NERDTreeGitStatusRefresh()
     let b:NERDTreeCachedGitDirtyDir   = {}
     let b:NOT_A_GIT_REPOSITORY        = 1
 
-    let l:root = b:NERDTreeRoot.path.str()
+    let l:root = b:NERDTree.root.path.str()
     let l:gitcmd = 'git -c color.status=false status -s'
     if exists('g:NERDTreeGitStatusIgnoreSubmodules')
         let l:gitcmd = l:gitcmd . ' --ignore-submodules'
@@ -80,7 +80,7 @@ function! g:NERDTreeGitStatusRefresh()
             let l:gitcmd = l:gitcmd . '=' . g:NERDTreeGitStatusIgnoreSubmodules
         endif
     endif
-    let l:statusesStr = system('cd ' . l:root . ' && ' . l:gitcmd)
+    let l:statusesStr = system('cd "' . l:root . '" && ' . l:gitcmd)
     let l:statusesSplit = split(l:statusesStr, '\n')
     if l:statusesSplit != [] && l:statusesSplit[0] =~# 'fatal:.*'
         let l:statusesSplit = []
@@ -139,7 +139,7 @@ function! g:NERDTreeGetGitStatusPrefix(path)
         call g:NERDTreeGitStatusRefresh()
     endif
     let l:pathStr = a:path.str()
-    let l:cwd = b:NERDTreeRoot.path.str() . a:path.Slash()
+    let l:cwd = b:NERDTree.root.path.str() . a:path.Slash()
     if nerdtree#runningWindows()
         let l:pathStr = a:path.WinToUnixPath(l:pathStr)
         let l:cwd = a:path.WinToUnixPath(l:cwd)
@@ -252,30 +252,40 @@ function! s:CursorHoldUpdate()
         return
     endif
 
+    " Do not update when a special buffer is selected
+    if !empty(&l:buftype)
+        return
+    endif
+
     let l:winnr = winnr()
+    let l:altwinnr = winnr('#')
+
     call g:NERDTree.CursorToTreeWin()
-    call b:NERDTreeRoot.refreshFlags()
+    call b:NERDTree.root.refreshFlags()
     call NERDTreeRender()
+
+    exec l:altwinnr . 'wincmd w'
     exec l:winnr . 'wincmd w'
 endfunction
 
 augroup nerdtreegitplugin
     autocmd BufWritePost * call s:FileUpdate(expand('%:p'))
 augroup END
-
 " FUNCTION: s:FileUpdate(fname) {{{2
 function! s:FileUpdate(fname)
     if g:NERDTreeUpdateOnWrite != 1
         return
     endif
+
     if !g:NERDTree.IsOpen()
         return
     endif
 
     let l:winnr = winnr()
+    let l:altwinnr = winnr('#')
 
     call g:NERDTree.CursorToTreeWin()
-    let l:node = b:NERDTreeRoot.findNode(g:NERDTreePath.New(a:fname))
+    let l:node = b:NERDTree.root.findNode(g:NERDTreePath.New(a:fname))
     if l:node == {}
         return
     endif
@@ -287,6 +297,8 @@ function! s:FileUpdate(fname)
     endwhile
 
     call NERDTreeRender()
+
+    exec l:altwinnr . 'wincmd w'
     exec l:winnr . 'wincmd w'
 endfunction
 
