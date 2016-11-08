@@ -151,6 +151,10 @@ noremap <PageUp> <Nop>
 inoremap <PageUp> <Nop>
 noremap <PageDown> <Nop>
 inoremap <PageDown> <Nop>
+noremap <Home> <Nop>
+inoremap <Home> <Nop>
+noremap <End> <Nop>
+inoremap <End> <Nop>
 
 " Some specific keys to make vim easier with an AZERTY keyboard
 
