@@ -17,7 +17,6 @@ fu! SearchInProject(pattern)
   set nowrap
 endfunction
 command -nargs=1 Search call SearchInProject(shellescape("<args>", 1))
-let g:syntastic_auto_loc_list=0
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
@@ -138,6 +137,7 @@ autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
+let g:syntastic_auto_loc_list = 1
 
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
