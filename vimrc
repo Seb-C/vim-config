@@ -155,6 +155,14 @@ noremap <Home> <Nop>
 inoremap <Home> <Nop>
 noremap <End> <Nop>
 inoremap <End> <Nop>
+noremap <Up> <Nop>
+inoremap <Up> <Nop>
+noremap <Down> <Nop>
+inoremap <Down> <Nop>
+noremap <Left> <Nop>
+inoremap <Left> <Nop>
+noremap <Right> <Nop>
+inoremap <Right> <Nop>
 
 " Some specific keys to make vim easier with an AZERTY keyboard
 
