@@ -20,6 +20,7 @@ let $BASH_ENV = "~/.bash_aliases"
 " create some aliases just for simplicity
 command Ghistory Agit
 command Undotree UndotreeShow
+command! -bang -nargs=* -complete=file Search call ack#Ack('lgrep<bang>', <q-args>)
 
 " Auto completion settings
 filetype plugin indent on
