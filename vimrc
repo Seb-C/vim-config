@@ -43,6 +43,7 @@ let g:vim_json_syntax_conceal = 0
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
+let g:netrw_banner=0
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
