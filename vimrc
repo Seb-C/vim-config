@@ -17,6 +17,9 @@ autocmd BufWinEnter quickfix nmap S H
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
+" create an alias just for simplicity
+command Ghistory Agit
+
 " Auto completion settings
 filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
