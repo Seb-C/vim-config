@@ -2,11 +2,31 @@
 execute pathogen#infect()
 syntax on
 
-" Tags builder (might need "apt-get install exuberant-ctags")
-let buildTagsCommand = 'ctags-exuberant -R --languages=PHP,JavaScript --PHP-kinds=+cidfvj --JavaScript-kinds=+scmpv --fields=+aimnztS --verbose=yes --exclude=cache --exclude=data --exclude=logs --exclude=.git --exclude=dist --exclude=''*.min.*'' --exclude=''*.log'' --exclude=node_modules .'
-command BuildTags :execute '!'.buildTagsCommand
-" Refreshing tags file on save
-autocmd BufWritePost *.php :echo "Rebuilding index..." | execute 'silent Dispatch! '.buildTagsCommand
+" Tags configuration
+let g:easytags_async = 1
+let g:easytags_always_enabled = 0
+let g:easytags_on_cursorhold = 0
+let g:easytags_syntax_keyword = 'always'
+let g:easytags_file = './tags'
+let g:easytags_auto_update = 0
+let g:easytags_auto_highlight = 0
+let g:easytags_resolve_links = 1
+let g:easytags_opts = [
+  \ '--exclude=*-min.*',
+  \ '--exclude=*.log',
+  \ '--exclude=*.min.*',
+  \ '--exclude=.git',
+  \ '--exclude=bundle.js',
+  \ '--exclude=cache',
+  \ '--exclude=data',
+  \ '--exclude=dist',
+  \ '--exclude=logs',
+  \ '--exclude=minified',
+  \ '--exclude=node_modules',
+  \ '--exclude=tinymce',
+  \ '--exclude=wmd.js',
+\ ]
+autocmd BufWritePost * UpdateTags
 
 if executable('ag')
   let g:ackprg = 'ag --vimgrep'
@@ -20,6 +40,7 @@ let $BASH_ENV = "~/.bash_aliases"
 " create some aliases just for simplicity
 command Ghistory Agit
 command Undotree UndotreeShow
+command CreateTags UpdateTags -R .
 command! -bang -nargs=* -complete=file Search call ack#Ack('lgrep<bang>', <q-args>)
 
 " Auto completion settings
