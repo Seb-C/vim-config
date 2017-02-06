@@ -131,6 +131,10 @@ set mouse=a
 
 set timeoutlen=200
 
+" Active window minimal size
+set winheight=20
+set winwidth=70
+
 set t_Co=256
 set background=dark
 colorscheme gruvbox
