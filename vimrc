@@ -28,11 +28,15 @@ let g:easytags_opts = [
 \ ]
 autocmd BufWritePost * UpdateTags
 
-if executable('ag')
-  let g:ackprg = 'ag --vimgrep'
-endif
-autocmd BufWinEnter quickfix nmap s h
-autocmd BufWinEnter quickfix nmap S H
+" Search shortcut command
+fu! SearchInProject(pattern)
+  silent execute "silent !(grep -IRn ".a:pattern." --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist --exclude-dir=node_modules * | cut -c1-1024 | sort | uniq > /tmp/vim-grep)"
+  lfile /tmp/vim-grep
+  lopen
+  redraw!
+  set nowrap
+endfunction
+command -nargs=1 Search call SearchInProject(shellescape("<args>", 1))
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
@@ -41,7 +45,6 @@ let $BASH_ENV = "~/.bash_aliases"
 command Ghistory Agit
 command Undotree UndotreeShow
 command CreateTags UpdateTags -R .
-command! -bang -nargs=* -complete=file Search call ack#Ack('lgrep<bang>', <q-args>)
 
 " Auto completion settings
 filetype plugin indent on
