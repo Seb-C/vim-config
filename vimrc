@@ -51,8 +51,8 @@ filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
 set completeopt=menuone,preview
 let g:acp_EnableAtStartup = 0
-let g:neocomplcache_enable_at_startup = 1
-let g:neocomplcache_enable_smart_case = 1
+let g:neocomplete#enable_at_startup = 1
+let g:neocomplete#enable_smart_case = 1
 
 " HTML and view files settings
 au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
