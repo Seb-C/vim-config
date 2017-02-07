@@ -49,10 +49,9 @@ command CreateTags UpdateTags -R .
 " Auto completion settings
 filetype plugin indent on
 set omnifunc=syntaxcomplete#Complete
-set completeopt=menuone,preview
-let g:acp_EnableAtStartup = 0
-let g:neocomplete#enable_at_startup = 1
-let g:neocomplete#enable_smart_case = 1
+set completeopt=menu,noinsert,menuone,preview
+let g:acp_EnableAtStartup = 1
+let g:acp_completeoptPreview = 1
 
 " HTML and view files settings
 au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
