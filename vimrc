@@ -30,7 +30,7 @@ autocmd BufWritePost * UpdateTags
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  silent execute "silent !(grep -IRn ".a:pattern." --exclude=tags --exclude=*.min.* --exclude=*.log --exclude-dir=cache --exclude-dir=logs --exclude-dir=.git --exclude-dir=data --exclude-dir=dist --exclude-dir=node_modules * | cut -c1-1024 | sort | uniq > /tmp/vim-grep)"
+  silent execute "silent !(ag -Q --vimgrep ".a:pattern." --ignore=tags --ignore=*.min.* --ignore=*.log --ignore-dir=cache --ignore-dir=logs --ignore-dir=.git --ignore-dir=data --ignore-dir=dist --ignore-dir=node_modules * | cut -c1-1024 > /tmp/vim-grep)"
   lfile /tmp/vim-grep
   lopen
   redraw!
