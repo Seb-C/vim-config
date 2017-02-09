@@ -37,6 +37,10 @@ fu! SearchInProject(pattern)
   set nowrap
 endfunction
 command -nargs=1 Search call SearchInProject(shellescape("<args>", 1))
+autocmd BufWinEnter quickfix nmap <buffer> s <C-W><CR><C-W>K
+autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
+autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
+autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
