@@ -26,7 +26,14 @@ let g:easytags_opts = [
   \ '--exclude=tinymce',
   \ '--exclude=wmd.js',
 \ ]
+let g:easytags_languages = {
+\ 'php': {
+\   'cmd': '~/.vim/phpctags/bin/phpctags',
+\ }
+\}
+let g:tagbar_phpctags_bin='~/.vim/phpctags/bin/phpctags'
 autocmd BufWritePost * UpdateTags
+noremap <C-x><C-t> :TagbarToggle<CR>
 
 " Search shortcut command
 fu! SearchInProject(pattern)
@@ -148,7 +155,6 @@ set novisualbell
 
 " Status bar
 set laststatus=2
-noremap <C-x><C-t> :TagbarToggle<CR>
 let g:airline_left_sep=''
 let g:airline_right_sep=''
 let g:airline_symbols_branch = '⇒'
