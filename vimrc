@@ -37,7 +37,7 @@ noremap <C-x><C-t> :TagbarToggle<CR>
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  silent execute "silent !(ag -Q --vimgrep ".a:pattern." --ignore=tags --ignore=*.min.* --ignore=*.log --ignore-dir=cache --ignore-dir=logs --ignore-dir=.git --ignore-dir=data --ignore-dir=dist --ignore-dir=node_modules * | cut -c1-1024 > /tmp/vim-grep)"
+  silent execute "silent !(ag -Q --vimgrep ".a:pattern." --ignore='tags' --ignore=*.min.* --ignore=*.log --ignore=cache --ignore=logs --ignore=.git --ignore=data --ignore=dist --ignore=node_modules | cut -c1-1024 > /tmp/vim-grep)"
   lfile /tmp/vim-grep
   lopen
   redraw!
