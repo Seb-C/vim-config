@@ -176,6 +176,10 @@ function! IPhpExpandClass()
 endfunction
 autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 
+" EditorConfig settings
+let g:EditorConfig_exclude_patterns = ['fugitive://.*']
+
+
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
 let g:syntastic_auto_loc_list = 1
