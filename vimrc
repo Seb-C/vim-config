@@ -29,6 +29,9 @@ let g:easytags_opts = [
 let g:easytags_languages = {
 \ 'php': {
 \   'cmd': '~/.vim/phpctags/bin/phpctags',
+\ },
+\ 'go': {
+\   'cmd': 'gotags',
 \ }
 \}
 let g:tagbar_phpctags_bin='~/.vim/phpctags/bin/phpctags'
