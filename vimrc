@@ -71,9 +71,6 @@ let g:acp_completeoptPreview = 1
 au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
 autocmd FileType html,phtml set omnifunc=htmlcomplete#CompleteTags
 
-" Select menu item with Enter instead of <C-y>
-inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-
 " Close preview scratch window on insert leave
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
