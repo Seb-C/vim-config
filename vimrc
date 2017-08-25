@@ -209,6 +209,18 @@ noremap <Left> <Nop>
 inoremap <Left> <Nop>
 noremap <Right> <Nop>
 inoremap <Right> <Nop>
+nmap <ScrollWheelUp> <nop>
+nmap <S-ScrollWheelUp> <nop>
+nmap <C-ScrollWheelUp> <nop>
+nmap <ScrollWheelDown> <nop>
+nmap <S-ScrollWheelDown> <nop>
+nmap <C-ScrollWheelDown> <nop>
+nmap <ScrollWheelLeft> <nop>
+nmap <S-ScrollWheelLeft> <nop>
+nmap <C-ScrollWheelLeft> <nop>
+nmap <ScrollWheelRight> <nop>
+nmap <S-ScrollWheelRight> <nop>
+nmap <C-ScrollWheelRight> <nop>
 
 " Some specific keys to make vim easier with an AZERTY keyboard
 
@@ -245,12 +257,4 @@ noremap 0 à
 
 " Use ù to use a macro, since @ is not easy to reach on an AZERTY
 "noremap ù @
-
-
-
-
-
-
-
-
 
