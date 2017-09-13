@@ -67,6 +67,10 @@ set completeopt=menu,noinsert,menuone,preview
 let g:acp_EnableAtStartup = 1
 let g:acp_completeoptPreview = 1
 
+" Vim commands autocompletion
+set wildmenu
+set wildmode=full
+
 " HTML and view files settings
 au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
 autocmd FileType html,phtml set omnifunc=htmlcomplete#CompleteTags
