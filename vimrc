@@ -184,10 +184,14 @@ autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 " EditorConfig settings
 let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
-
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
 let g:syntastic_auto_loc_list = 1
+if filereadable('.php_cs')
+    let g:php_cs_fixer_config_file = '.php_cs'
+    let g:php_cs_fixer_path = './vendor/friendsofphp/php-cs-fixer/php-cs-fixer --allow-risky=yes'
+    autocmd BufWritePost *.php call PhpCsFixerFixFile()
+endif
 
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
