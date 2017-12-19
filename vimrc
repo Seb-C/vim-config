@@ -196,6 +196,10 @@ endif
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
 
+" Showing tabs
+set listchars=tab:▸\ 
+set list
+
 " Unmapping some keys to change my bad habits
 noremap <Insert> <Nop>
 inoremap <Insert> <Nop>
