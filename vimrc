@@ -38,6 +38,17 @@ let g:tagbar_phpctags_bin='~/.vim/phpctags/bin/phpctags'
 autocmd BufWritePost * UpdateTags
 noremap <C-x><C-t> :TagbarToggle<CR>
 
+" Initializing tags file if not exists in the current project
+function CreateTagsFileIfNotExists()
+  if !filereadable("tags")
+    let g:easytags_async = 0
+    :echo "Creating tags index..."
+    :UpdateTags -R .
+  endif
+  let g:easytags_async = 1
+endfunction
+autocmd VimEnter * call CreateTagsFileIfNotExists()
+
 " Search shortcut command
 fu! SearchInProject(pattern)
   silent execute "silent !(ag -QUf --vimgrep ".a:pattern." --ignore='tags' --ignore=*.min.* --ignore=*.log --ignore=cache --ignore=logs --ignore=.git --ignore=data --ignore=dist --ignore=node_modules | cut -c1-1024 > /tmp/vim-grep)"
