@@ -11,6 +11,7 @@ let g:easytags_file = './tags'
 let g:easytags_auto_update = 0
 let g:easytags_auto_highlight = 0
 let g:easytags_resolve_links = 1
+let g:easytags_cmd = '/usr/local/bin/ctags'
 let g:easytags_opts = [
   \ '--exclude=*-min.*',
   \ '--exclude=*.log',
@@ -25,20 +26,9 @@ let g:easytags_opts = [
   \ '--exclude=node_modules',
   \ '--exclude=tinymce',
   \ '--exclude=wmd.js',
-  \ '--php-kinds=-v'
+  \ '--fields=+aimlS-s',
+  \ '--JavaScript-kinds=-v'
 \ ]
-let g:easytags_languages = {
-\ 'php': {
-\   'cmd': '~/.vim/phpctags/bin/phpctags',
-\   'args': [
-\      '--kinds=tcmfpdi-n',
-\      '--fields=nksailfmKStz'
-\   ]
-\ },
-\ 'go': {
-\   'cmd': 'gotags',
-\ }
-\}
 let g:tagbar_phpctags_bin='~/.vim/phpctags/bin/phpctags'
 autocmd BufWritePost * UpdateTags
 noremap <C-x><C-t> :TagbarToggle<CR>
@@ -53,9 +43,10 @@ function CreateTagsFileIfNotExists()
   let g:easytags_async = 1
 endfunction
 autocmd VimEnter * call CreateTagsFileIfNotExists()
-"autocmd FileType php call CreateTagsFileIfNotExists()
 
 " TODO remove tag files after a few time ?
+" TODO fix tag column
+" TODO remove phpctags
 
 " Search shortcut command
 fu! SearchInProject(pattern)
