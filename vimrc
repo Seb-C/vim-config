@@ -29,7 +29,7 @@ let g:easytags_opts = [
   \ '--fields=+aimlS-s',
   \ '--JavaScript-kinds=-v'
 \ ]
-let g:tagbar_phpctags_bin='~/.vim/phpctags/bin/phpctags'
+let g:tagbar_ctags_bin = '/usr/local/bin/ctags'
 autocmd BufWritePost * UpdateTags
 noremap <C-x><C-t> :TagbarToggle<CR>
 
@@ -45,8 +45,7 @@ endfunction
 autocmd VimEnter * call CreateTagsFileIfNotExists()
 
 " TODO remove tag files after a few time ?
-" TODO fix tag column
-" TODO remove phpctags
+" TODO update plugins
 
 " Search shortcut command
 fu! SearchInProject(pattern)

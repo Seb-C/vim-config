@@ -1,0 +1,240 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+<2-LeftMouse>	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    inoremap <script> <silent> <buffer> <2-LeftMouse>$/;"	m	language:Vim
+<2-LeftMouse>	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    nnoremap <script> <silent> <buffer> <2-LeftMouse>$/;"	m	language:Vim
+<LeftRelease>	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    inoremap <script> <silent> <buffer> <LeftRelease>$/;"	m	language:Vim
+<LeftRelease>	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    nnoremap <script> <silent> <buffer> <LeftRelease>$/;"	m	language:Vim
+b:current_syntax	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let b:current_syntax = "tagbar"$/;"	v	language:Vim
+g:loaded_tagbar	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let g:loaded_tagbar = 1$/;"	v	language:Vim
+g:tagbar#icon_closed	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let g:tagbar#icon_closed = g:tagbar_iconchars[0]$/;"	v	language:Vim
+g:tagbar#icon_open	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let g:tagbar#icon_open   = g:tagbar_iconchars[1]$/;"	v	language:Vim
+g:tagbar_autoclose	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    let g:tagbar_autoclose = !g:tagbar_autoclose$/;"	v	language:Vim
+g:tagbar_case_insensitive	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    let g:tagbar_case_insensitive = !g:tagbar_case_insensitive$/;"	v	language:Vim
+g:tagbar_ctags_bin	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^                let g:tagbar_ctags_bin = ctags$/;"	v	language:Vim
+g:tagbar_ctags_bin	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^        let g:tagbar_ctags_bin = expand(g:tagbar_ctags_bin)$/;"	v	language:Vim
+g:tagbar_hide_nonpublic	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    let g:tagbar_hide_nonpublic = !g:tagbar_hide_nonpublic$/;"	v	language:Vim
+g:tagbar_iconchars	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^        let g:tagbar_iconchars = ['+', '-']$/;"	v	language:Vim
+g:tagbar_iconchars	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^        let g:tagbar_iconchars = ['▶', '▼']$/;"	v	language:Vim
+g:tagbar_sort	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^        let g:tagbar_sort = !g:tagbar_sort$/;"	v	language:Vim
+s:addChild	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:addChild(tag) abort dict$/;"	f	language:Vim
+s:addTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:addTag(tag) abort dict$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/pseudotag.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/splittag.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_snr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/typeinfo.vim	/^function! s:add_snr(funcname) abort$/;"	f	language:Vim
+s:add_tag_recursive	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:add_tag_recursive(parent, taginfo, pathlist) abort$/;"	f	language:Vim
+s:autocommands_done	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:autocommands_done = 0$/;"	v	language:Vim
+s:AutoUpdate	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:AutoUpdate(fname, force, ...) abort$/;"	f	language:Vim
+s:buffer_seqno	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:buffer_seqno = 0$/;"	v	language:Vim
+s:ChangeFoldLevel	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ChangeFoldLevel(diff, force) abort$/;"	f	language:Vim
+s:checked_ctags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:checked_ctags       = 0$/;"	v	language:Vim
+s:checked_ctags_types	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:checked_ctags_types = 0$/;"	v	language:Vim
+s:CheckExCtagsVersion	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CheckExCtagsVersion(output) abort$/;"	f	language:Vim
+s:CheckForExCtags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CheckForExCtags(silent) abort$/;"	f	language:Vim
+s:CheckFTCtags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CheckFTCtags(bin, ftype) abort$/;"	f	language:Vim
+s:CheckMouseClick	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CheckMouseClick() abort$/;"	f	language:Vim
+s:clearOldFolds	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:clearOldFolds() abort dict$/;"	f	language:Vim
+s:CloseFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CloseFold() abort$/;"	f	language:Vim
+s:closeFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:closeFold() abort dict$/;"	f	language:Vim
+s:closeFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:closeFold() abort dict$/;"	f	language:Vim
+s:closeKindFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:closeKindFold(kind) abort dict$/;"	f	language:Vim
+s:CloseWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CloseWindow() abort$/;"	f	language:Vim
+s:compare_by_kind	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/sorting.vim	/^function! s:compare_by_kind(tag1, tag2) abort$/;"	f	language:Vim
+s:compare_by_line	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/sorting.vim	/^function! s:compare_by_line(tag1, tag2) abort$/;"	f	language:Vim
+s:compare_typeinfo	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/sorting.vim	/^let s:compare_typeinfo = {}$/;"	v	language:Vim
+s:CorrectFocusOnStartup	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CorrectFocusOnStartup() abort$/;"	f	language:Vim
+s:CreateAutocommands	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CreateAutocommands() abort$/;"	f	language:Vim
+s:createKinddict	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/typeinfo.vim	/^function! s:createKinddict() abort dict$/;"	f	language:Vim
+s:create_pseudotag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:create_pseudotag(name, parent, kind, typeinfo, fileinfo) abort$/;"	f	language:Vim
+s:CtagsErrMsg	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:CtagsErrMsg(errmsg, infomsg, silent, ...) abort$/;"	f	language:Vim
+s:ctags_is_uctags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:ctags_is_uctags     = 0$/;"	v	language:Vim
+s:debug_enabled	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^let s:debug_enabled = 0$/;"	v	language:Vim
+s:debug_file	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^let s:debug_file = ''$/;"	v	language:Vim
+s:delayed_update_files	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:delayed_update_files = []$/;"	v	language:Vim
+s:DetectFiletype	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:DetectFiletype(bufnr) abort$/;"	f	language:Vim
+s:do_delayed_update	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:do_delayed_update() abort$/;"	f	language:Vim
+s:EscapeCtagsCmd	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:EscapeCtagsCmd(ctags_bin, args, ...) abort$/;"	f	language:Vim
+s:ExecuteCtags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ExecuteCtags(ctags_cmd) abort$/;"	f	language:Vim
+s:ExecuteCtagsOnFile	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ExecuteCtagsOnFile(fname, realfname, typeinfo) abort$/;"	f	language:Vim
+s:expand_bufnr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:expand_bufnr = -1$/;"	v	language:Vim
+s:get	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! s:get() abort$/;"	f	language:Vim
+s:getChildren	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:getChildren() dict abort$/;"	f	language:Vim
+s:getChildrenByName	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:getChildrenByName(tagname) dict abort$/;"	f	language:Vim
+s:getClosedParentTline	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:getClosedParentTline() abort dict$/;"	f	language:Vim
+s:GetFileWinnr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GetFileWinnr(fileinfo) abort$/;"	f	language:Vim
+s:getKind	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/typeinfo.vim	/^function! s:getKind(kind) abort dict$/;"	f	language:Vim
+s:GetNearbyTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GetNearbyTag(all, forcecurrent, ...) abort$/;"	f	language:Vim
+s:getPrototype	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:getPrototype(short) abort dict$/;"	f	language:Vim
+s:getPrototype	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:getPrototype(short) abort dict$/;"	f	language:Vim
+s:getPrototype	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! s:getPrototype(short) abort dict$/;"	f	language:Vim
+s:GetSupportedFiletypes	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GetSupportedFiletypes() abort$/;"	f	language:Vim
+s:GetTagInfo	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GetTagInfo(linenr, ignorepseudo) abort$/;"	f	language:Vim
+s:getTags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:getTags() dict abort$/;"	f	language:Vim
+s:getTagsByName	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:getTagsByName(tagname) dict abort$/;"	f	language:Vim
+s:gettime	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^    function! s:gettime() abort$/;"	f	language:Vim
+s:gettime	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^    function! s:gettime() abort$/;"	f	language:Vim
+s:get_map_str	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:get_map_str(map) abort$/;"	f	language:Vim
+s:GotoFileWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GotoFileWindow(fileinfo, ...) abort$/;"	f	language:Vim
+s:GotoNextFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GotoNextFold() abort$/;"	f	language:Vim
+s:GotoNextToplevelTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GotoNextToplevelTag(direction) abort$/;"	f	language:Vim
+s:GotoPrevFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:GotoPrevFold() abort$/;"	f	language:Vim
+s:goto_markedwin	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:goto_markedwin(...) abort$/;"	f	language:Vim
+s:goto_tagbar	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:goto_tagbar(...) abort$/;"	f	language:Vim
+s:goto_win	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:goto_win(winnr, ...) abort$/;"	f	language:Vim
+s:HandleBufDelete	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:HandleBufDelete(bufname, bufnr) abort$/;"	f	language:Vim
+s:HandleBufWrite	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:HandleBufWrite(fname) abort$/;"	f	language:Vim
+s:HandleOnlyWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:HandleOnlyWindow() abort$/;"	f	language:Vim
+s:HasOpenFileWindows	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:HasOpenFileWindows() abort$/;"	f	language:Vim
+s:HighlightTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:HighlightTag(openfolds, ...) abort$/;"	f	language:Vim
+s:ics	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:ics = escape(join(g:tagbar_iconchars, ''), ']^\\-')$/;"	v	language:Vim
+s:Init	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:Init(silent) abort$/;"	f	language:Vim
+s:initFoldState	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:initFoldState(known_files) abort dict$/;"	f	language:Vim
+s:InitTypes	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:InitTypes() abort$/;"	f	language:Vim
+s:InitWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:InitWindow(autoclose) abort$/;"	f	language:Vim
+s:init_done	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:init_done = 0$/;"	v	language:Vim
+s:init_var	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^function! s:init_var(var, value) abort$/;"	f	language:Vim
+s:isFoldable	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isFoldable() abort dict$/;"	f	language:Vim
+s:isFoldable	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:isFoldable() abort dict$/;"	f	language:Vim
+s:isFolded	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isFolded() abort dict$/;"	f	language:Vim
+s:isFolded	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:isFolded() abort dict$/;"	f	language:Vim
+s:isKindheader	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isKindheader() abort dict$/;"	f	language:Vim
+s:isKindheader	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:isKindheader() abort dict$/;"	f	language:Vim
+s:isNormalTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isNormalTag() abort dict$/;"	f	language:Vim
+s:isNormalTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! s:isNormalTag() abort dict$/;"	f	language:Vim
+s:isPseudoTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isPseudoTag() abort dict$/;"	f	language:Vim
+s:isPseudoTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/pseudotag.vim	/^function! s:isPseudoTag() abort dict$/;"	f	language:Vim
+s:isSplitTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:isSplitTag() abort dict$/;"	f	language:Vim
+s:isSplitTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/splittag.vim	/^function! s:isSplitTag() abort dict$/;"	f	language:Vim
+s:IsValidFile	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:IsValidFile(fname, ftype) abort$/;"	f	language:Vim
+s:is_maximized	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:is_maximized    = 0$/;"	v	language:Vim
+s:JumpToTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:JumpToTag(stay_in_tagbar) abort$/;"	f	language:Vim
+s:known_files	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:known_files = {$/;"	v	language:Vim
+s:known_files.get	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:known_files.get(fname) abort dict$/;"	f	language:Vim
+s:known_files.has	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:known_files.has(fname) abort dict$/;"	f	language:Vim
+s:known_files.put	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:known_files.put(fileinfo, ...) abort dict$/;"	f	language:Vim
+s:known_files.rm	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:known_files.rm(fname) abort dict$/;"	f	language:Vim
+s:last_alt_bufnr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:last_alt_bufnr = -1$/;"	v	language:Vim
+s:last_highlight_tline	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:last_highlight_tline = 0$/;"	v	language:Vim
+s:LoadUserTypeDefs	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:LoadUserTypeDefs(...) abort$/;"	f	language:Vim
+s:MapKeys	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:MapKeys() abort$/;"	f	language:Vim
+s:mark_window	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:mark_window() abort$/;"	f	language:Vim
+s:MinimizeMaxFoldLevel	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:MinimizeMaxFoldLevel(fileinfo, tags) abort$/;"	f	language:Vim
+s:nearby_disabled	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:nearby_disabled = 0$/;"	v	language:Vim
+s:new_window	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:new_window      = 1$/;"	v	language:Vim
+s:OpenFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:OpenFold() abort$/;"	f	language:Vim
+s:openFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:openFold() abort dict$/;"	f	language:Vim
+s:openFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:openFold() abort dict$/;"	f	language:Vim
+s:openKindFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:openKindFold(kind) abort dict$/;"	f	language:Vim
+s:OpenParents	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:OpenParents(...) abort$/;"	f	language:Vim
+s:openParents	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:openParents() abort dict$/;"	f	language:Vim
+s:OpenWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:OpenWindow(flags) abort$/;"	f	language:Vim
+s:ParseTagline	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ParseTagline(part1, part2, typeinfo, fileinfo) abort$/;"	f	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\(\\S\\@<![' . s:ics . ' ]\\)\\@<=#\\([^-+# ]\\)\\@='$/;"	v	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\(\\S\\@<![' . s:ics . ' ]\\)\\@<=+\\([^-+# ]\\)\\@='$/;"	v	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\(\\S\\@<![' . s:ics . ' ]\\)\\@<=-\\([^-+# ]\\)\\@='$/;"	v	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\(\\S\\@<![' . s:ics . '][-+# ]\\?\\)\\@<=[^*(]\\+\\(\\*\\?\\(([^)]\\+)\\)\\? /;"	v	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\(^[' . s:ics . '] \\?\\)\\@3<=[^-+: ]\\+[^:]\\+$'$/;"	v	language:Vim
+s:pattern	/data/home/lyon/caparros/.vim/bundle/tagbar/syntax/tagbar.vim	/^let s:pattern = '\\S\\@<![' . s:ics . ']\\([-+# ]\\?\\)\\@='$/;"	v	language:Vim
+s:paused	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:paused = 0$/;"	v	language:Vim
+s:PrintHelp	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:PrintHelp() abort$/;"	f	language:Vim
+s:PrintKinds	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:PrintKinds(typeinfo, fileinfo) abort$/;"	f	language:Vim
+s:PrintTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:PrintTag(tag, depth, output, fileinfo, typeinfo) abort$/;"	f	language:Vim
+s:ProcessFile	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ProcessFile(fname, ftype) abort$/;"	f	language:Vim
+s:ProcessTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function s:ProcessTag(name, filename, pattern, fields, is_split, typeinfo, fileinfo) abort$/;"	f	language:Vim
+s:pwin_by_tagbar	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:pwin_by_tagbar = 0$/;"	v	language:Vim
+s:removeChild	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:removeChild(tag) dict abort$/;"	f	language:Vim
+s:removeTag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:removeTag(tag) dict abort$/;"	f	language:Vim
+s:RenderContent	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:RenderContent(...) abort$/;"	f	language:Vim
+s:RenderKeepView	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:RenderKeepView(...) abort$/;"	f	language:Vim
+s:ReopenWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ReopenWindow(delbufname) abort$/;"	f	language:Vim
+s:reset	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:reset() abort dict$/;"	f	language:Vim
+s:RestoreSession	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:RestoreSession() abort$/;"	f	language:Vim
+s:setFolded	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:setFolded(folded) abort dict$/;"	f	language:Vim
+s:SetFoldLevel	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:SetFoldLevel(level, force) abort$/;"	f	language:Vim
+s:SetFoldLevelRecursive	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:SetFoldLevelRecursive(fileinfo, tags, level) abort$/;"	f	language:Vim
+s:SetStatusLine	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:SetStatusLine()$/;"	f	language:Vim
+s:setup_keymaps	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^function! s:setup_keymaps() abort$/;"	f	language:Vim
+s:setup_options	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^function! s:setup_options() abort$/;"	f	language:Vim
+s:short_help	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:short_help      = 1$/;"	v	language:Vim
+s:ShowInPreviewWin	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ShowInPreviewWin() abort$/;"	f	language:Vim
+s:ShowPrototype	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ShowPrototype(short) abort$/;"	f	language:Vim
+s:ShrinkIfExpanded	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ShrinkIfExpanded() abort$/;"	f	language:Vim
+s:sortTags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! s:sortTags(compare_typeinfo) abort dict$/;"	f	language:Vim
+s:State	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^let s:State = {$/;"	v	language:Vim
+s:State.getCurrent	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! s:State.getCurrent(force_current) abort dict$/;"	f	language:Vim
+s:State.New	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! s:State.New() abort dict$/;"	f	language:Vim
+s:State.setCurrentFile	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! s:State.setCurrentFile(fileinfo) abort dict$/;"	f	language:Vim
+s:State.setPaused	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! s:State.setPaused() abort dict$/;"	f	language:Vim
+s:statusline_in_use	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:statusline_in_use = 0$/;"	v	language:Vim
+s:str	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! s:str(longsig, full) abort dict$/;"	f	language:Vim
+s:strfmt	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! s:strfmt() abort dict$/;"	f	language:Vim
+s:strfmt	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/pseudotag.vim	/^function! s:strfmt() abort dict$/;"	f	language:Vim
+s:TagbarBufName	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:TagbarBufName() abort$/;"	f	language:Vim
+s:ToggleAutoclose	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleAutoclose() abort$/;"	f	language:Vim
+s:ToggleCaseInsensitive	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleCaseInsensitive() abort$/;"	f	language:Vim
+s:ToggleFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleFold() abort$/;"	f	language:Vim
+s:toggleFold	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! s:toggleFold(fileinfo) abort dict$/;"	f	language:Vim
+s:ToggleHelp	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleHelp() abort$/;"	f	language:Vim
+s:ToggleHideNonPublicTags	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleHideNonPublicTags() abort$/;"	f	language:Vim
+s:ToggleSort	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleSort() abort$/;"	f	language:Vim
+s:ToggleWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ToggleWindow(flags) abort$/;"	f	language:Vim
+s:TransformUserTypeDef	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:TransformUserTypeDef(def) abort$/;"	f	language:Vim
+s:type_init_done	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:type_init_done    = 0$/;"	v	language:Vim
+s:vim_quitting	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:vim_quitting = 0$/;"	v	language:Vim
+s:visibility_symbols	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^let s:visibility_symbols = {$/;"	v	language:Vim
+s:warning	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:warning(msg) abort$/;"	f	language:Vim
+s:warnings	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:warnings = {$/;"	v	language:Vim
+s:window_expanded	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:window_expanded   = 0$/;"	v	language:Vim
+s:window_pos	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:window_pos = {$/;"	v	language:Vim
+s:winrestcmd	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^let s:winrestcmd      = ''$/;"	v	language:Vim
+s:ZoomWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! s:ZoomWindow() abort$/;"	f	language:Vim
+s:_getPrefix	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! s:_getPrefix() abort dict$/;"	f	language:Vim
+Tagbar	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 Tagbar              call tagbar#ToggleWindow()$/;"	c	language:Vim
+tagbar#autoopen	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#autoopen(...) abort$/;"	f	language:Vim
+tagbar#CloseWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#CloseWindow() abort$/;"	f	language:Vim
+tagbar#currentfile	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#currentfile() abort$/;"	f	language:Vim
+tagbar#currenttag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#currenttag(fmt, default, ...) abort$/;"	f	language:Vim
+tagbar#debug#enabled	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^function! tagbar#debug#enabled() abort$/;"	f	language:Vim
+tagbar#debug#log	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^function! tagbar#debug#log(msg) abort$/;"	f	language:Vim
+tagbar#debug#log_ctags_output	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^function! tagbar#debug#log_ctags_output(output) abort$/;"	f	language:Vim
+tagbar#debug#start_debug	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^function! tagbar#debug#start_debug(...) abort$/;"	f	language:Vim
+tagbar#debug#stop_debug	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/debug.vim	/^function! tagbar#debug#stop_debug() abort$/;"	f	language:Vim
+tagbar#gettypeconfig	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#gettypeconfig(type) abort$/;"	f	language:Vim
+tagbar#getusertypes	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#getusertypes() abort$/;"	f	language:Vim
+tagbar#highlighttag	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#highlighttag(openfolds, force) abort$/;"	f	language:Vim
+tagbar#inspect	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#inspect(var) abort$/;"	f	language:Vim
+tagbar#is_paused	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#is_paused() abort$/;"	f	language:Vim
+tagbar#OpenWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#OpenWindow(...) abort$/;"	f	language:Vim
+tagbar#prototypes#basetag#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/basetag.vim	/^function! tagbar#prototypes#basetag#new(name) abort$/;"	f	language:Vim
+tagbar#prototypes#fileinfo#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/fileinfo.vim	/^function! tagbar#prototypes#fileinfo#new(fname, ftype, typeinfo) abort$/;"	f	language:Vim
+tagbar#prototypes#kindheadertag#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/kindheadertag.vim	/^function! tagbar#prototypes#kindheadertag#new(name) abort$/;"	f	language:Vim
+tagbar#prototypes#normaltag#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/normaltag.vim	/^function! tagbar#prototypes#normaltag#new(name) abort$/;"	f	language:Vim
+tagbar#prototypes#pseudotag#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/pseudotag.vim	/^function! tagbar#prototypes#pseudotag#new(name) abort$/;"	f	language:Vim
+tagbar#prototypes#splittag#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/splittag.vim	/^function! tagbar#prototypes#splittag#new(name) abort$/;"	f	language:Vim
+tagbar#prototypes#typeinfo#new	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/prototypes/typeinfo.vim	/^function! tagbar#prototypes#typeinfo#new(...) abort$/;"	f	language:Vim
+tagbar#RestoreSession	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#RestoreSession() abort$/;"	f	language:Vim
+tagbar#SetFoldLevel	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#SetFoldLevel(level, force) abort$/;"	f	language:Vim
+tagbar#sorting#sort	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/sorting.vim	/^function! tagbar#sorting#sort(tags, compareby, compare_typeinfo) abort$/;"	f	language:Vim
+tagbar#state#get_current_file	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! tagbar#state#get_current_file(force_current) abort$/;"	f	language:Vim
+tagbar#state#set_current_file	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! tagbar#state#set_current_file(fileinfo) abort$/;"	f	language:Vim
+tagbar#state#set_paused	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/state.vim	/^function! tagbar#state#set_paused() abort$/;"	f	language:Vim
+tagbar#ToggleWindow	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#ToggleWindow(...) abort$/;"	f	language:Vim
+tagbar#toggle_pause	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! tagbar#toggle_pause() abort$/;"	f	language:Vim
+tagbar#types#ctags#init	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/types/ctags.vim	/^function! tagbar#types#ctags#init(supported_types) abort$/;"	f	language:Vim
+tagbar#types#uctags#init	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar/types/uctags.vim	/^function! tagbar#types#uctags#init(supported_types) abort$/;"	f	language:Vim
+TagbarAutoCmds	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^    augroup TagbarAutoCmds$/;"	a	language:Vim
+TagbarBalloonExpr	/data/home/lyon/caparros/.vim/bundle/tagbar/autoload/tagbar.vim	/^function! TagbarBalloonExpr() abort$/;"	f	language:Vim
+TagbarClose	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarClose         call tagbar#CloseWindow()$/;"	c	language:Vim
+TagbarCurrentTag	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=? TagbarCurrentTag    echo tagbar#currenttag('%s', 'No current tag', <f-args>)$/;"	c	language:Vim
+TagbarDebug	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=? TagbarDebug         call tagbar#debug#start_debug(<f-args>)$/;"	c	language:Vim
+TagbarDebugEnd	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarDebugEnd      call tagbar#debug#stop_debug()$/;"	c	language:Vim
+TagbarGetTypeConfig	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=1 TagbarGetTypeConfig call tagbar#gettypeconfig(<f-args>)$/;"	c	language:Vim
+TagbarOpen	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=? TagbarOpen          call tagbar#OpenWindow(<f-args>)$/;"	c	language:Vim
+TagbarOpenAutoClose	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarOpenAutoClose call tagbar#OpenWindow('fcj')$/;"	c	language:Vim
+TagbarSession	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^augroup TagbarSession$/;"	a	language:Vim
+TagbarSetFoldlevel	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=1 -bang TagbarSetFoldlevel  call tagbar#SetFoldLevel(<args>, <bang>0)$/;"	c	language:Vim
+TagbarShowTag	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarShowTag       call tagbar#highlighttag(1, 1)$/;"	c	language:Vim
+TagbarToggle	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarToggle        call tagbar#ToggleWindow()$/;"	c	language:Vim
+TagbarTogglePause	/data/home/lyon/caparros/.vim/bundle/tagbar/plugin/tagbar.vim	/^command! -nargs=0 TagbarTogglePause   call tagbar#toggle_pause()$/;"	c	language:Vim
