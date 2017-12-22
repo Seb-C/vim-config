@@ -45,7 +45,6 @@ endfunction
 autocmd VimEnter * call CreateTagsFileIfNotExists()
 
 " TODO remove tag files after a few time ?
-" TODO update plugins
 
 " Search shortcut command
 fu! SearchInProject(pattern)

@@ -38,7 +38,7 @@ endsnippet
 # case
 snippet case "case ...:"
 case ${1:value}:
-	${0}
+	${0:${VISUAL}}
 endsnippet
 
 # constant
@@ -70,8 +70,7 @@ endsnippet
 # default case
 snippet default "default: ..."
 default:
-	${0}
-
+	${0:${VISUAL}}
 endsnippet
 
 # defer
@@ -82,7 +81,7 @@ endsnippet
 
 snippet def "defer func() { ... }"
 defer func() {
-	${0}
+	${0:${VISUAL}}
 }()
 endsnippet
 
@@ -90,7 +89,7 @@ endsnippet
 snippet defr
 defer func() {
 	if err := recover(); err != nil {
-		${0}
+		${0:${VISUAL}}
 	}
 }()
 endsnippet
@@ -111,7 +110,7 @@ snippet gpl
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <http://www.gnu.org/licenses/>.
 *
-* Copyright (C) ${1:Author}, `strftime("%Y")`
+* Copyright (C) ${1:Author}, `!v strftime("%Y")`
 */
 ${0}
 endsnippet
@@ -133,14 +132,21 @@ endsnippet
 # if condition
 snippet if "if ... { ... }"
 if ${1:condition} {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
 # else snippet
 snippet else
 else {
-	${0}
+	${0:${VISUAL}}
+}
+endsnippet
+
+# if inline error
+snippet ife "If with inline erro"
+if err := ${1:condition}; err != nil {
+	${0:${VISUAL}}
 }
 endsnippet
 
@@ -152,6 +158,15 @@ if err != nil {
 ${0}
 endsnippet
 
+# error log snippet
+snippet errl "Error with log.Fatal(err)" !b
+if err != nil {
+	log.Fatal(err)
+}
+${0}
+endsnippet
+
+# error multiple return
 snippet errn, "Error return with two return values" !b
 if err != nil {
 	return ${1:nil}, err
@@ -159,8 +174,39 @@ if err != nil {
 ${0}
 endsnippet
 
+# error panic
+snippet errp "Error panic" !b
+if err != nil {
+	panic(${1})
+}
+${0}
+endsnippet
+
+# error test
+snippet errt "Error test fatal " !b
+if err != nil {
+	t.Fatal(err)
+}
+${0}
+endsnippet
+
+# error handle
+snippet errh "Error handle and return" !b
+if err != nil {
+	${1}
+	return
+}
+${0}
+endsnippet
+
+# json field tag
 snippet json "\`json:key\`"
-\`json:"${1:keyName}"\`
+\`json:"${1:`!v  go#util#snippetcase(matchstr(getline("."), '\w\+'))`}"\`
+endsnippet
+
+# yaml field tag
+snippet yaml "\`yaml:key\`"
+\`yaml:"${1:`!v  go#util#snippetcase(matchstr(getline("."), '\w\+'))`}"\`
 endsnippet
 
 # fallthrough
@@ -171,21 +217,21 @@ endsnippet
 # for loop
 snippet for "for ... { ... }"
 for ${1} {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
 # for integer loop
 snippet fori "for 0..N-1 { ... }"
 for ${1:i} := 0; $1 < ${2:N}; $1++ {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
 # for range loop
 snippet forr "for k, v := range items { ... }"
 for ${2:k}, ${3:v} := range ${1} {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
@@ -203,17 +249,17 @@ endsnippet
 
 # Fmt Println debug
 snippet fn "fmt.Println(...)"
-fmt.Println("${1}")
+fmt.Println("${1:${VISUAL}}")
 endsnippet
 
 # log printf
 snippet lf "log.Printf(...)"
-log.Printf("${1} = %+v\n", $1)
+log.Printf("${1:${VISUAL}} = %+v\n", $1)
 endsnippet
 
 # log println
 snippet ln "log.Println(...)"
-log.Println("${1}")
+log.Println("${1:${VISUAL}}")
 endsnippet
 
 # make
@@ -229,7 +275,7 @@ endsnippet
 # main()
 snippet main "func main() { ... }"
 func main() {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
@@ -243,7 +289,7 @@ endsnippet
 # ok
 snippet ok "if !ok { ... }"
 if !ok {
-	${0}
+	${0:${VISUAL}}
 }
 endsnippet
 
@@ -261,7 +307,7 @@ endsnippet
 
 # return
 snippet rt "return"
-return ${0}
+return ${0:${VISUAL}}
 endsnippet
 
 # select
@@ -308,8 +354,20 @@ endsnippet
 # test function
 snippet test "func TestXYZ(t *testing.T) { ... }"
 func Test${1:Function}(t *testing.T) {
-	${0}
+	${0:${VISUAL}}
 }
+endsnippet
+
+snippet hf "http.HandlerFunc" !b
+func ${1:handler}(w http.ResponseWriter, r *http.Request) {
+	${0:fmt.Fprintf(w, "hello world")}
+}
+endsnippet
+
+snippet hhf "mux.HandleFunc" !b
+${1:http}.HandleFunc("${2:/}", func(w http.ResponseWriter, r *http.Request) {
+	${0:fmt.Fprintf(w, "hello world")}
+})
 endsnippet
 
 # quick test server
@@ -336,16 +394,40 @@ if err != nil {
 }
 endsnippet
 
+snippet example "func ExampleXYZ() { ... }"
+func Example${1:Method}() {
+	${0:${VISUAL}}
+	// Output:
+}
+endsnippet
+
+snippet benchmark "func BenchmarkXYZ(b *testing.B) { ... }"
+func Benchmark${1:Method}(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		${0:${VISUAL}}
+	}
+}
+endsnippet
+
 # variable declaration
 snippet var "var x Type [= ...]"
-var ${1:x} ${2:Type}${3: = ${0:value\}}
+var ${1:x} ${2:Type}${3: = ${0:value}}
 endsnippet
 
 # variables declaration
 snippet vars "var ( ... )"
 var (
-${1:x} ${2:Type}${3: = ${0:value\}}
+	${1:x} ${2:Type}${3: = ${0:value}}
 )
+endsnippet
+
+# equals fails the test if exp is not equal to act.
+snippet eq "equals: test two identifiers with DeepEqual"
+if !reflect.DeepEqual(${1:expected}, ${2:actual}) {
+	_, file, line, _ := runtime.Caller(0)
+	fmt.Printf("%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\n\n", filepath.Base(file), line, $1, $2)
+	t.FailNow()
+}
 endsnippet
 
 global !p
