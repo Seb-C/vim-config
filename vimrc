@@ -4,6 +4,7 @@ syntax on
 
 let b:project_unique_name = substitute(getcwd(), "/", "_", "g")
 let b:tag_file_location = $HOME.'/.vim/tags/'.b:project_unique_name
+let b:session_file_location = $HOME.'/.vim/sessions/'.b:project_unique_name
 
 " Tags configuration
 let g:easytags_async = 1
@@ -63,6 +64,16 @@ autocmd BufWinEnter quickfix nmap <buffer> s <C-W><CR><C-W>K
 autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
 autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
 autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
+
+" Session handling
+command SaveSession :execute 'mksession! '.b:session_file_location
+command DeleteSession :call delete(b:session_file_location)
+function OpenSessionIfExists()
+  if filereadable(b:session_file_location)
+    execute 'source '.b:session_file_location
+  endif
+endfunction
+autocmd VimEnter * call OpenSessionIfExists()
 
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
