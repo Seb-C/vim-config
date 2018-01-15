@@ -2,12 +2,15 @@
 execute pathogen#infect()
 syntax on
 
+let b:project_unique_name = substitute(getcwd(), "/", "_", "g")
+let b:tag_file_location = $HOME.'/.vim/tags/'.b:project_unique_name
+
 " Tags configuration
 let g:easytags_async = 1
 let g:easytags_always_enabled = 0
 let g:easytags_on_cursorhold = 0
 let g:easytags_syntax_keyword = 'always'
-let g:easytags_file = './tags'
+let g:easytags_file = b:tag_file_location
 let g:easytags_auto_update = 0
 let g:easytags_auto_highlight = 0
 let g:easytags_resolve_links = 1
@@ -32,10 +35,11 @@ let g:easytags_opts = [
 let g:tagbar_ctags_bin = '/usr/local/bin/ctags'
 autocmd BufWritePost * UpdateTags
 noremap <C-x><C-t> :TagbarToggle<CR>
+let &tags = b:tag_file_location
 
 " Initializing tags file if not exists in the current project for this language
 function CreateTagsFileIfNotExists()
-  if !filereadable("tags")
+  if !filereadable(b:tag_file_location)
     let g:easytags_async = 0
     :echo "Creating tags index..."
     :UpdateTags -R .
