@@ -24,6 +24,7 @@ let g:easytags_opts = [
   \ '--exclude=bundle.js',
   \ '--exclude=cache',
   \ '--exclude=data',
+  \ '--exclude=tags',
   \ '--exclude=dist',
   \ '--exclude=logs',
   \ '--exclude=minified',
@@ -47,7 +48,11 @@ function CreateTagsFileIfNotExists()
   endif
   let g:easytags_async = 1
 endfunction
-autocmd VimEnter * call CreateTagsFileIfNotExists()
+if len(split(system("ps -o command= -p ".getpid()))) == 1
+  " Automatically index project, but not if a specific file
+  " has been opened (useful outside projects for example)
+  autocmd VimEnter * call CreateTagsFileIfNotExists()
+endif
 
 " TODO remove tag files after a few time ?
 
