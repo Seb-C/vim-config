@@ -168,6 +168,9 @@ set noswapfile
 set nowritebackup
 set mouse=a
 
+" Synchronizes default yank with system's clipboard
+set clipboard=unnamedplus
+
 set timeoutlen=200
 
 " Active window minimal size
