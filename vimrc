@@ -177,6 +177,8 @@ set noswapfile
 set nowritebackup
 set mouse=a
 
+set virtualedit=block
+
 " Synchronizes default yank with system's clipboard
 set clipboard=unnamedplus
 
