@@ -80,6 +80,10 @@ function OpenSessionIfExists()
 endfunction
 autocmd VimEnter * call OpenSessionIfExists()
 
+" Custom Terminal command
+command Terminal :ConqueTerm bash
+let g:ConqueTerm_StartMessages = 0
+
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
