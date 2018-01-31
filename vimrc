@@ -4,7 +4,7 @@ syntax on
 
 let b:project_unique_name = substitute(getcwd(), "/", "_", "g")
 let b:tag_file_location = $HOME.'/.vim/tags/'.b:project_unique_name
-let b:session_file_location = $HOME.'/.vim/sessions/'.b:project_unique_name
+let g:session_file_location = $HOME.'/.vim/sessions/'.b:project_unique_name
 
 " Tags configuration
 let g:easytags_async = 1
@@ -71,11 +71,11 @@ autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
 autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
 
 " Session handling
-command SaveSession :execute 'mksession! '.b:session_file_location
-command DeleteSession :call delete(b:session_file_location)
+command SaveSession :execute 'mksession! '.g:session_file_location
+command DeleteSession :call delete(g:session_file_location)
 function OpenSessionIfExists()
-  if filereadable(b:session_file_location)
-    execute 'source '.b:session_file_location
+  if filereadable(g:session_file_location)
+    execute 'source '.g:session_file_location
   endif
 endfunction
 autocmd VimEnter * call OpenSessionIfExists()
