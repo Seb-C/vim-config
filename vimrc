@@ -179,9 +179,9 @@ set smarttab
 set softtabstop=4
 set shiftwidth=4
 set tabstop=4
- 
+
 set ruler
- 
+
 set undolevels=1000
 set backspace=indent,eol,start
 
@@ -218,6 +218,19 @@ let g:airline_symbols_branch = '⇒'
 let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
 let g:airline_section_y=''
 let g:airline_section_warning=''
+
+" Rainbow parentheses
+let g:rainbow_active = 0
+let g:airline_section_y .= ' %{RedrawStatusLineForRainbow(mode())}'
+function! RedrawStatusLineForRainbow(mode)
+    if a:mode == 'n' || a:mode == 'i' || a:mode == 'R'
+        RainbowToggleOff
+    elseif a:mode == 'v' || a:mode == 'V' || a:mode == '^V'
+        RainbowToggleOn
+    endif
+    redraw
+    return ''
+endfunction
 
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
