@@ -200,6 +200,8 @@ set noerrorbells visualbell t_vb=
 autocmd GUIEnter * set visualbell t_vb=
 set novisualbell
 
+highlight ExtraWhitespace ctermbg=208
+
 " Status bar
 set laststatus=2
 let g:airline_left_sep=''
