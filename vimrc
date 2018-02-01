@@ -145,6 +145,14 @@ if executable('ag')
     let g:ctrlp_user_command = 'ag %s -l --nocolor --ignore-dir=node_modules -g ""'
 endif
 
+" Color picker
+let g:vcoolor_lowercase = 0
+let g:vcoolor_disable_mappings = 1
+command ColorHex :VCoolor
+command ColorRgb :VCoolIns r
+command ColorRgba :VCoolIns ra
+command ColorHsl :VCoolIns h
+
 " Enable fold by indent for every language
 autocmd Syntax * setlocal foldmethod=indent
 set foldlevel=99
