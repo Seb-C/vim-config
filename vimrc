@@ -40,7 +40,7 @@ noremap <C-x><C-t> :TagbarToggle<CR>
 let &tags = b:tag_file_location
 
 " Tabularize custom configuration
-autocmd VimEnter * AddTabularPattern , /^[^,]*\zs,/l0r1
+autocmd VimEnter * AddTabularPattern , /[^,]\+,
 cnoreabbrev Align Tabularize
 
 " Initializing tags file if not exists in the current project for this language
