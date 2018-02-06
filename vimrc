@@ -31,6 +31,14 @@ let g:easytags_opts = [
   \ '--exclude=node_modules',
   \ '--exclude=tinymce',
   \ '--exclude=wmd.js',
+  \ '--exclude=*.json',
+  \ '--exclude=*.css',
+  \ '--exclude=lang',
+  \ '--exclude=select2',
+  \ '--exclude=*vendor/**/tests',
+  \ '--exclude=*vendor/**/Tests',
+  \ '--exclude=*vendor/**/*.js',
+  \ '--exclude=*packages/**/*.js',
   \ '--fields=+aimlS-s',
   \ '--JavaScript-kinds=-v'
 \ ]
