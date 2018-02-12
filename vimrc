@@ -111,6 +111,7 @@ set completeopt=menu,noinsert,menuone,preview
 let g:acp_EnableAtStartup = 1
 let g:acp_completeoptPreview = 1
 set complete-=i
+let g:acp_completeOption = &complete
 
 " Vim commands autocompletion
 set wildmenu
@@ -128,6 +129,7 @@ autocmd FileType scss set iskeyword+=-
 let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
+let g:phpcomplete_complete_for_unknown_classes = 0
 let javascript_enable_domhtmlcss = 1
 let g:vim_json_syntax_conceal = 0
 
