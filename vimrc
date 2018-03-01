@@ -262,7 +262,7 @@ let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 " Only using php lint for now
 let g:syntastic_php_checkers = ['php']
 let g:syntastic_auto_loc_list = 1
-if filereadable('.php_cs')
+if filereadable('.php_cs') && filereadable('./vendor/friendsofphp/php-cs-fixer/php-cs-fixer')
     let g:php_cs_fixer_config_file = '.php_cs'
     let g:php_cs_fixer_path = './vendor/friendsofphp/php-cs-fixer/php-cs-fixer --allow-risky=yes'
     autocmd BufWritePost *.php call PhpCsFixerFixFile()
