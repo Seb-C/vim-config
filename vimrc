@@ -259,8 +259,10 @@ autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
 " EditorConfig settings
 let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
-" Only using php lint for now
+" Linters
 let g:syntastic_php_checkers = ['php']
+let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_auto_loc_list = 1
 if filereadable('.php_cs') && filereadable('./vendor/friendsofphp/php-cs-fixer/php-cs-fixer')
     let g:php_cs_fixer_config_file = '.php_cs'
