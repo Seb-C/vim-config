@@ -60,10 +60,24 @@ function CreateTagsFileIfNotExists()
   endif
   let g:easytags_async = 1
 endfunction
+
+" Session handling
+command SaveSession :execute 'mksession! '.g:session_file_location
+command DeleteSession :call delete(g:session_file_location)
+function OpenSessionIfExists()
+  if filereadable(g:session_file_location)
+    execute 'source '.g:session_file_location
+  endif
+endfunction
+
 if len(split(system("ps -o command= -p ".getpid()))) == 1
   " Automatically index project, but not if a specific file
   " has been opened (useful outside projects for example)
   autocmd VimEnter * call CreateTagsFileIfNotExists()
+
+  " Same for sessions handling. We don't want to open the
+  " environment if a specific file has been opened
+  autocmd VimEnter * call OpenSessionIfExists()
 endif
 
 " TODO remove tag files after a few time ?
@@ -81,16 +95,6 @@ autocmd BufWinEnter quickfix nmap <buffer> s <C-W><CR><C-W>K
 autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
 autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
 autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
-
-" Session handling
-command SaveSession :execute 'mksession! '.g:session_file_location
-command DeleteSession :call delete(g:session_file_location)
-function OpenSessionIfExists()
-  if filereadable(g:session_file_location)
-    execute 'source '.g:session_file_location
-  endif
-endfunction
-autocmd VimEnter * call OpenSessionIfExists()
 
 " Custom Terminal command
 command Terminal :ConqueTerm bash
