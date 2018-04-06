@@ -232,6 +232,7 @@ let g:airline_symbols_branch = '⇒'
 let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
 let g:airline_section_y=''
 let g:airline_section_warning=''
+set fillchars=vert:▚
 
 " Rainbow parentheses
 let g:rainbow_active = 0
