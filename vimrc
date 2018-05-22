@@ -51,6 +51,13 @@ let &tags = b:tag_file_location
 autocmd VimEnter * AddTabularPattern , /[^,]\+,
 cnoreabbrev Align Tabularize
 
+" Storing undo
+set undodir=$HOME/.vim/undo
+set undofile
+set undolevels=1000
+set undoreload=1000
+command Undotree UndotreeShow
+
 " Initializing tags file if not exists in the current project for this language
 function CreateTagsFileIfNotExists()
   if !filereadable(b:tag_file_location)
@@ -105,7 +112,6 @@ let $BASH_ENV = "~/.bash_aliases"
 
 " create some aliases just for simplicity
 command Ghistory Agit
-command Undotree UndotreeShow
 command CreateTags UpdateTags -R .
 
 " Auto completion settings
@@ -196,7 +202,6 @@ set tabstop=4
 
 set ruler
 
-set undolevels=1000
 set backspace=indent,eol,start
 
 set noswapfile
