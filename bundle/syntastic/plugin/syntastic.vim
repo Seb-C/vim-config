@@ -656,7 +656,8 @@ function! SyntasticMake(options) abort " {{{2
     endif
 
     if bailout
-        call syntastic#log#ndebug(g:_SYNTASTIC_DEBUG_LOCLIST, 'checker output:', err_lines)
+        "call syntastic#log#ndebug(g:_SYNTASTIC_DEBUG_LOCLIST, 'checker output:', err_lines)
+        return errors
         throw 'Syntastic: checker error'
     endif
 
