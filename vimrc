@@ -142,6 +142,7 @@ let g:phpcomplete_relax_static_constraint = 1
 let g:phpcomplete_complete_for_unknown_classes = 0
 let javascript_enable_domhtmlcss = 1
 let g:vim_json_syntax_conceal = 0
+autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
