@@ -33,6 +33,9 @@ function! NERDTreeExecute()
   if has("unix") && executable("gnome-open") && !s:haskdeinit
     exe "silent !gnome-open ".args
     let ret= v:shell_error
+  elseif has("unix") && executable("xdg-open") && !s:haskdeinit
+    exe "silent !xdg-open ".args
+    let ret= v:shell_error
   elseif has("unix") && executable("kde-open") && s:haskdeinit
     exe "silent !kde-open ".args
     let ret= v:shell_error
