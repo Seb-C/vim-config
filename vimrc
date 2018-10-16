@@ -91,7 +91,7 @@ endif
 
 " Search shortcut command
 fu! SearchInProject(pattern)
-  silent execute "silent !(ag -QUf --vimgrep ".a:pattern." --ignore='tags' --ignore=*.min.* --ignore=*.log --ignore=cache --ignore=logs --ignore=.git --ignore=data --ignore=dist --ignore=node_modules | cut -c1-1024 > /tmp/vim-grep)"
+  silent execute "silent !(ag -QUf --vimgrep ".a:pattern." --ignore='tags' --ignore=*.min.* --ignore=*.log --ignore=cache --ignore=logs --ignore=.git --ignore=data --ignore=dist --ignore=cordova --ignore=node_modules | cut -c1-1024 > /tmp/vim-grep)"
   lfile /tmp/vim-grep
   lopen
   redraw!
