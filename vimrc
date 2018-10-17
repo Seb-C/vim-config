@@ -144,6 +144,7 @@ let javascript_enable_domhtmlcss = 1
 let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 autocmd BufRead,BufNewFile *.pcss set filetype=scss
+autocmd BufRead,BufNewFile *.pcss set tabstop=4
 
 " Tree directory listing (:E)
 let g:netrw_liststyle=3
@@ -273,6 +274,7 @@ let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
 " Linters
 let g:syntastic_php_checkers = ['php']
+let g:syntastic_javascript_eslint_exe = '$(npm bin)/eslint'
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_auto_loc_list = 1
