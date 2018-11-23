@@ -103,6 +103,10 @@ autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
 autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
 autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
 
+" vim-qf config
+let g:qf_window_bottom = 0
+let g:qf_loclist_window_bottom = 0
+
 " Custom Terminal command
 command Terminal :ConqueTerm bash
 let g:ConqueTerm_StartMessages = 0
