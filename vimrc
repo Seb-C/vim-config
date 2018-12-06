@@ -166,7 +166,7 @@ let NERDTreeMapOpenVSplit='v'
 let g:ctrlp_regexp = 1
 let g:ctrlp_follow_symlinks = 1
 let g:ctrlp_max_files = 0
-let g:ctrlp_clear_cache_on_exit = 1 
+let g:ctrlp_clear_cache_on_exit = 1
 let g:ctrlp_working_path_mode = 'w'
 if executable('ag')
     let g:ctrlp_user_command = 'ag %s -l --nocolor --ignore-dir=node_modules -g ""'
@@ -192,12 +192,12 @@ set linebreak
 set textwidth=0
 set showmatch
 set visualbell
- 
+
 set hlsearch
 set smartcase
 set ignorecase
 set incsearch
- 
+
 set autoindent
 set expandtab
 set shiftwidth=4
@@ -223,8 +223,26 @@ set clipboard=unnamedplus
 set timeoutlen=200
 
 " Active window minimal size
-set winheight=20
-set winwidth=70
+" set winheight=20
+" set winwidth=70
+
+" Submode to ease window resizing
+let g:submode_timeout = 0
+let g:submode_keep_leaving_key = 1
+call submode#enter_with('grow/shrink', 'n', '', '<C-q>')
+silent !stty -ixon
+
+" Normal resizing
+call submode#map('grow/shrink', 'n', '', '+', ':resize +3<Enter>')
+call submode#map('grow/shrink', 'n', '', '-', ':resize -3<Enter>')
+call submode#map('grow/shrink', 'n', '', '>', ':vertical resize +3<Enter>')
+call submode#map('grow/shrink', 'n', '', '<lt>', ':vertical resize -3<Enter>')
+
+" Moving window
+call submode#map('grow/shrink', 'n', '', 'h', '<C-w>h<C-w><lt><C-W>l<C-W><lt>')
+call submode#map('grow/shrink', 'n', '', 'l', '<C-w>h<C-w>><C-W>l<C-W>>')
+call submode#map('grow/shrink', 'n', '', 'k', '<C-w>k<C-w>-<C-W>j<C-W>-')
+call submode#map('grow/shrink', 'n', '', 'j', '<C-w>k<C-w>+<C-W>j<C-W>+')
 
 set t_Co=256
 set background=dark

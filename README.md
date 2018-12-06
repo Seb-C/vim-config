@@ -15,8 +15,3 @@ To enable bash_aliases with `:!`, you must add this line on top of your `.bash_a
 ```
 shopt -s expand_aliases"
 ```
-
-To stop the terminal from hanging on some keyboard commands (<C-s>):
-```
-stty -ixon
-```
