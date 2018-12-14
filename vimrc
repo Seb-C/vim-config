@@ -125,7 +125,7 @@ set backspace=indent,eol,start
 
 set noswapfile
 set nowritebackup
-set mouse=n
+set mouse=""
 
 set virtualedit=block
 
