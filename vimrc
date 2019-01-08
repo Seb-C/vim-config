@@ -132,7 +132,7 @@ set mouse=""
 set virtualedit=block
 
 " Synchronizes default yank with system's clipboard
-set clipboard=unnamedplus
+set clipboard=unnamed,unnamedplus
 
 set timeoutlen=200
 
