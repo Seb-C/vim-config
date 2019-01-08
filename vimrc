@@ -1,3 +1,4 @@
+scriptencoding utf-8
 " Plugin manager
 execute pathogen#infect()
 syntax on
