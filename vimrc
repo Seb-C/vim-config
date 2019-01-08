@@ -30,6 +30,7 @@ let $BASH_ENV = "~/.bash_aliases"
 
 " create some aliases just for simplicity
 command Ghistory Agit
+cnoreabbrev Translate OpenGoogleTranslate
 
 " Auto completion settings
 filetype plugin indent on
