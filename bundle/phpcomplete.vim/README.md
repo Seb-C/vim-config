@@ -67,7 +67,7 @@ When enabled the plugin will search for the variables in the tag files with kind
 lines like `$some_var = new Foo;` but these usually yield highly inaccurate results and
 can	be fairly slow.
 
-**let g:phpcomplete\_min\_num\_of\_chars\_for\_namespace\_completion = n [default 1]** *Requires [patched ctags](https://github.com/shawncplus/phpcomplete.vim/wiki/Patched-ctags)* <br>
+**let g:phpcomplete\_min\_num\_of\_chars\_for\_namespace\_completion = n [default 1]** *Requires [patched ctags](https://github.com/shawncplus/phpcomplete.vim/wiki/Getting-better-tags)* <br>
 This option controls the number of characters the user needs to type before
 the tags will be searched for namespaces and classes in typed out namespaces in
 "use ..." context. Setting this to 0 is not recommended because that means the code
@@ -98,11 +98,13 @@ Defines the mappings for the enhanced jump-to-definition.
  - **jump\_to\_def**: Jumps to the definition in the current buffer
  - **jump\_to\_def\_split**: Jumps to the definition in a new split buffer
  - **jump\_to\_def\_vsplit**: Jumps to the definition in a new vertical split buffer
+ - **jump\_to\_def\_tabnew**: Jumps to the definition in a new tab buffer
 
 You change any of them like this in your `vimrc`:
 
     let g:phpcomplete_mappings = {
       \ 'jump_to_def': ',g',
+      \ 'jump_to_def_tabnew': ',t',
       \ }
 The keys you don't specify will be mapped to the defaults:
 
@@ -110,6 +112,7 @@ The keys you don't specify will be mapped to the defaults:
        \ 'jump_to_def': '<C-]>',
        \ 'jump_to_def_split': '<C-W><C-]>',
        \ 'jump_to_def_vsplit': '<C-W><C-\>',
+       \ 'jump_to_def_tabnew': '<C-W><C-[>',
        \}
 
 **let g:phpcomplete\_add\_function\_extensions = [...]**<br>
