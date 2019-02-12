@@ -1,3 +1,18 @@
+=== Vdebug 2.0.0 / 2018-04-30
+Features:
+ * async behaviour (@joonty finished python2 based version)
+ * python3 based
+ * allow debugging of phar files
+
+Big thanks to @Garethp, @lucc and @markkimsal for the python 3 related works.
+
+Bug fixes:
+ * hide numbers and make debug windows non editable
+ * all sorts of issues triggered by the pyton3 move
+ * fix window positioning in neovim
+
+Other changes, vdebug moved into its own organisation on github now.
+
 === Vdebug 1.5.1 / 2015-09-07
 Bug fixes:
  * Fix buffers not being wiped out after ending a session (thanks @BlackIkeEagle, #226)
@@ -41,6 +56,22 @@ Features:
  * Add completion to :Breakpoint command (thanks @tommcdo, #124)
  * Add VdebugStart command (thanks @blueyed, #132)
  * Sleep for 100ms in wait loop, don't consume as much CPU (thanks @blueyed, #133)
+
+=== Vdebug 1.4.2a / 2013-11-11
+
+Bug fixes:
+ * Add compatibility fix for Python debugging (due to incorrect "file:/" prefix) (issue #68, #102)
+ * Fix remote path slash replacement (issue #94)
+ * Fix rendering of unicode in watch window (issue #95)
+ * Stop errors being thrown on Vim 7.4 (issue #98, #96, #99)
+ * Fix error message on plugin reload, from function definition (thanks @glittershark, #106)
+
+Documentation:
+ * Correct minor spelling and grammar errors in help doc (thanks @dkinzer, #108)
+ * Change the description for setting up the python debugger in the docs
+
+Other:
+ * Add cucumber for integration tests, and add lots of features
 
 === Vdebug 1.4.1 / 2013-06-09
 
@@ -120,7 +151,7 @@ Bug fixes:
  * Stopped creating empty buffers every time Vdebug started (issue #25)
  * Fixed bug with file URI quoting
  * Fixed escaping of characters when calling eval (issue #15)
- 
+
 
 === Vdebug 1.2 / 2012-10-05
 
