@@ -30,7 +30,7 @@ let g:is_vdebug_loaded = 1
 
 " Do not source this script when python is not compiled in.
 if !has('python3')
-    echomsg ':python3 is not available, vdebug will not be loaded.'
+    "echomsg ':python3 is not available, vdebug will not be loaded.'
     finish
 endif
 

@@ -11,6 +11,9 @@ let g:easytags_auto_update = 0
 let g:easytags_auto_highlight = 0
 let g:easytags_resolve_links = 1
 let g:easytags_cmd = '/usr/local/bin/ctags'
+let g:easytags_languages = {
+  \'typescript': {}
+\}
 let g:easytags_opts = [
   \ '--exclude=*-min.*',
   \ '--exclude=*.log',
