@@ -79,6 +79,7 @@ let g:NERDTreeChDirMode=2
 let NERDTreeShowHidden=1
 let NERDTreeMapOpenSplit='s'
 let NERDTreeMapOpenVSplit='v'
+let NERDTreeMapQuit=''
 
 " CtrlP plugin settings
 let g:ctrlp_regexp = 1
