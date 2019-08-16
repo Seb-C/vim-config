@@ -176,18 +176,6 @@ endfunction
 
 autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 
-" Expand class name or add the use tag with <C-e> and <C-u>
-function! IPhpInsertUse()
-    call PhpInsertUse()
-    call feedkeys('a',  'n')
-endfunction
-autocmd FileType php,phtml noremap <C-x><C-u> <Esc>:call IPhpInsertUse()<CR>
-function! IPhpExpandClass()
-    call PhpExpandClass()
-    call feedkeys('a', 'n')
-endfunction
-autocmd FileType php,phtml noremap <C-x><C-e> <Esc>:call IPhpExpandClass()<CR>
-
 " EditorConfig settings
 let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
