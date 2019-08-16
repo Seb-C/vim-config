@@ -58,6 +58,7 @@ autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
 " Languages plugins settings
 autocmd FileType scss set iskeyword+=-
+autocmd FileType blade set iskeyword-=\$
 let g:phpcomplete_parse_docblock_comments = 1
 let g:phpcomplete_enhance_jump_to_definition = 0
 let g:phpcomplete_relax_static_constraint = 1
