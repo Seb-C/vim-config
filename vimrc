@@ -49,10 +49,6 @@ let g:acp_completeOption = &complete
 set wildmenu
 set wildmode=full
 
-" HTML and view files settings
-au BufRead,BufNewFile *.view.php,*.tpl set filetype=phtml
-autocmd FileType html,phtml set omnifunc=htmlcomplete#CompleteTags
-
 " Close preview scratch window on insert leave
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
