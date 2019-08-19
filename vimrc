@@ -2,6 +2,7 @@ scriptencoding utf-8
 " Plugin manager
 execute pathogen#infect()
 syntax on
+filetype plugin indent on
 
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/search.vim
@@ -37,12 +38,11 @@ command Ghistory Agit
 cnoreabbrev Translate OpenGoogleTranslate
 
 " Auto completion settings
-filetype plugin indent on
-set omnifunc=syntaxcomplete#Complete
-set completeopt=menu,noinsert,menuone,preview
-set complete-=i
+"set omnifunc=syntaxcomplete#Complete
+"set completeopt=menu,noinsert,menuone,preview
+"set complete-=i
 
-" Vim commands autocompletion
+" Vim command-mode autocompletion
 set wildmenu
 set wildmode=full
 
