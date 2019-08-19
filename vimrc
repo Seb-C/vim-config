@@ -38,9 +38,9 @@ cnoreabbrev Translate OpenGoogleTranslate
 
 " Auto completion settings
 filetype plugin indent on
-"set omnifunc=syntaxcomplete#Complete
-"set completeopt=menu,noinsert,menuone,preview
-"set complete-=i
+set omnifunc=syntaxcomplete#Complete
+set completeopt=menu,noinsert,menuone,preview
+set complete-=i
 
 " Vim commands autocompletion
 set wildmenu
@@ -147,7 +147,7 @@ let g:airline_left_sep=''
 let g:airline_right_sep=''
 let g:airline_symbols_branch = '⇒'
 let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
-let g:airline_section_y='%{coc#status()}'
+let g:airline_section_y=''
 let g:airline_section_warning=''
 set fillchars=vert:▚
 
