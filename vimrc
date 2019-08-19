@@ -38,9 +38,12 @@ command Ghistory Agit
 cnoreabbrev Translate OpenGoogleTranslate
 
 " Auto completion settings
-"set omnifunc=syntaxcomplete#Complete
-"set completeopt=menu,noinsert,menuone,preview
-"set complete-=i
+set omnifunc=syntaxcomplete#Complete
+set completeopt=menu,noinsert,menuone,preview
+set complete-=i
+let g:acp_EnableAtStartup = 1
+let g:acp_completeoptPreview = 1
+let g:acp_completeOption = &complete
 
 " Vim command-mode autocompletion
 set wildmenu
