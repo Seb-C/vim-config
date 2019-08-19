@@ -38,12 +38,9 @@ cnoreabbrev Translate OpenGoogleTranslate
 
 " Auto completion settings
 filetype plugin indent on
-set omnifunc=syntaxcomplete#Complete
-set completeopt=menu,noinsert,menuone,preview
-let g:acp_EnableAtStartup = 1
-let g:acp_completeoptPreview = 1
-set complete-=i
-let g:acp_completeOption = &complete
+"set omnifunc=syntaxcomplete#Complete
+"set completeopt=menu,noinsert,menuone,preview
+"set complete-=i
 
 " Vim commands autocompletion
 set wildmenu
@@ -55,10 +52,6 @@ autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 " Languages plugins settings
 autocmd FileType scss set iskeyword+=-
 autocmd FileType blade set iskeyword-=\$
-let g:phpcomplete_parse_docblock_comments = 1
-let g:phpcomplete_enhance_jump_to_definition = 0
-let g:phpcomplete_relax_static_constraint = 1
-let g:phpcomplete_complete_for_unknown_classes = 0
 let javascript_enable_domhtmlcss = 1
 let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
@@ -154,7 +147,7 @@ let g:airline_left_sep=''
 let g:airline_right_sep=''
 let g:airline_symbols_branch = '⇒'
 let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
-let g:airline_section_y=''
+let g:airline_section_y='%{coc#status()}'
 let g:airline_section_warning=''
 set fillchars=vert:▚
 

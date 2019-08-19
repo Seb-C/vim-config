@@ -11,3 +11,13 @@ To enable bash_aliases with `:!`, you must add this line on top of your `.bash_a
 ```
 shopt -s expand_aliases"
 ```
+
+Coc extensions to install:
+```
+CocInstall coc-svg
+CocInstall coc-yaml
+CocInstall coc-css
+CocInstall coc-html
+CocInstall coc-phpls
+CocInstall coc-json
+```
