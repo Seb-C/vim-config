@@ -1,0 +1,12 @@
+if !exists('g:vdebug_options')
+    let g:vdebug_options = {}
+endif
+
+let g:vdebug_options.path_maps = {
+  \ "/var/www/": "$PWD/common/modules",
+  \ "/var/www": "$PWD/src"
+\}
+
+if fnamemodify($PWD, ":t") == "myproject"
+    set path=common/modules/**,src/*/Modules/**,src/*/app/**
+endif
