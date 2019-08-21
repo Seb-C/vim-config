@@ -11,10 +11,6 @@ source ~/.vim/config/window-resize.vim
 source ~/.vim/config/bad-habits.vim
 source ~/.vim/config/azerty.vim
 
-if filereadable(expand('~/.vim/local_config.vim'))
-    source ~/.vim/local_config.vim
-endif
-
 " Tabularize custom configuration
 autocmd VimEnter * AddTabularPattern , /[^,]\+,
 cnoreabbrev Align Tabularize
@@ -185,3 +181,8 @@ nnoremap <silent> <C-L> :noh<CR><C-L>
 " Showing tabs
 set listchars=tab:▸\ 
 set list
+
+if filereadable(expand('~/.vim/local_config.vim'))
+    source ~/.vim/local_config.vim
+endif
+
