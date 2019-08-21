@@ -53,12 +53,6 @@ set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.min.*\ --ignore=
 set grepformat=%f:%l:%c:%m
 cnoremap <C-G> silent grep! -Q 
 
-" Shortcuts for results window
-autocmd BufWinEnter quickfix nmap <buffer> s <C-W><CR><C-W>K
-autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
-autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
-autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
-
 " Native fuzzy-finding
 set wildignore+=**/node_modules/**
 set wildignore+=**/vendor/**
