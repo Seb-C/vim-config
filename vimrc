@@ -5,11 +5,8 @@ syntax on
 filetype plugin indent on
 
 source ~/.vim/config/sessions.vim
-source ~/.vim/config/search.vim
-source ~/.vim/config/tags.vim
 source ~/.vim/config/window-resize.vim
 source ~/.vim/config/bad-habits.vim
-source ~/.vim/config/azerty.vim
 
 " Tabularize custom configuration
 autocmd VimEnter * AddTabularPattern , /[^,]\+,
@@ -21,6 +18,10 @@ set undofile
 set undolevels=1000
 set undoreload=1000
 command Undotree UndotreeShow
+
+" Tagbar
+let g:tagbar_ctags_bin = '/usr/local/bin/ctags'
+noremap <C-x><C-t> :TagbarToggle<CR>
 
 " vim-qf config
 let g:qf_window_bottom = 0
@@ -48,8 +49,15 @@ cnoremap <C-y> <Down>
 cnoremap <C-x> <Up>
 
 " Vim file search settings
-"set grepprg=ag\ --vimgrep\ $*
-"set grepformat=%f:%l:%c:%m
+set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.min.*\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=dist\ --ignore=cordova\ --ignore=node_modules\ --ignore=vendor\ --ignore=phpmetrics\ --ignore=storage
+set grepformat=%f:%l:%c:%m
+cnoremap <C-G> silent grep! -Q 
+
+" Shortcuts for results window
+autocmd BufWinEnter quickfix nmap <buffer> s <C-W><CR><C-W>K
+autocmd BufWinEnter quickfix nmap <buffer> S <C-W><CR><C-W>K<C-W>b
+autocmd BufWinEnter quickfix nmap <buffer> v <C-W><CR><C-W>H<C-W>b<C-W>t
+autocmd BufWinEnter quickfix nmap <buffer> V <C-W><CR><C-W>H<C-W>b
 
 " Native fuzzy-finding
 set wildignore+=**/node_modules/**
