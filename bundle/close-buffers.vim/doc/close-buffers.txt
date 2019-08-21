@@ -1,5 +1,0 @@
-*close-buffers.txt*  Commands to close buffers
-
-Please see https://github.com/Asheq/close-buffers.vim
-
- vim:tw=78:et:ft=help:norl:
