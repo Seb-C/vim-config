@@ -176,12 +176,6 @@ let g:syntastic_typescript_checkers = ['tslint']
 let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
 let g:syntastic_auto_loc_list = 1
-if filereadable('.php_cs.dist')
-    if filereadable('./vendor/friendsofphp/php-cs-fixer/php-cs-fixer')
-        let g:php_cs_fixer_path = './vendor/friendsofphp/php-cs-fixer/php-cs-fixer --diff'
-    endif
-    autocmd BufWritePost *.php call PhpCsFixerFixFile()
-endif
 
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
