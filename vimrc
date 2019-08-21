@@ -132,6 +132,8 @@ set mouse=""
 
 set virtualedit=block
 
+set lazyredraw
+
 " Synchronizes default yank with system's clipboard
 set clipboard=unnamed,unnamedplus
 
