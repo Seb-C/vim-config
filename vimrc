@@ -47,6 +47,22 @@ let g:acp_completeOption = &complete
 " Vim command-mode autocompletion
 set wildmenu
 set wildmode=full
+let &wildcharm = &wildchar
+cnoremap <C-y> <Down>
+cnoremap <C-x> <Up>
+
+" Vim file search settings
+"set grepprg=ag\ --vimgrep\ $*
+"set grepformat=%f:%l:%c:%m
+
+" Native fuzzy-finding
+set wildignore+=**/node_modules/**
+set wildignore+=**/vendor/**
+set wildignore+=**/storage/**
+set wildignore+=**/cache/**
+set wildignore+=**/.git/**
+set wildignore+=**/data/**
+set path=$PWD/**
 
 " Close preview scratch window on insert leave
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
@@ -72,16 +88,6 @@ let NERDTreeShowHidden=1
 let NERDTreeMapOpenSplit='s'
 let NERDTreeMapOpenVSplit='v'
 let NERDTreeMapQuit=''
-
-" CtrlP plugin settings
-let g:ctrlp_regexp = 1
-let g:ctrlp_follow_symlinks = 1
-let g:ctrlp_max_files = 0
-let g:ctrlp_clear_cache_on_exit = 1
-let g:ctrlp_working_path_mode = 'w'
-if executable('ag')
-    let g:ctrlp_user_command = 'ag %s -l --nocolor --ignore-dir=node_modules -g ""'
-endif
 
 " Color picker
 let g:vcoolor_lowercase = 0
