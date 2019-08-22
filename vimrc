@@ -8,6 +8,9 @@ source ~/.vim/config/sessions.vim
 source ~/.vim/config/window-resize.vim
 source ~/.vim/config/bad-habits.vim
 
+" Disabling netrw
+let loaded_netrwPlugin = 1
+
 " Tabularize custom configuration
 autocmd VimEnter * AddTabularPattern , /[^,]\+,
 cnoreabbrev Align Tabularize
@@ -73,10 +76,6 @@ let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 autocmd BufRead,BufNewFile *.pcss set filetype=scss
 autocmd BufRead,BufNewFile *.pcss set tabstop=4
-
-" Tree directory listing (:E)
-let g:netrw_liststyle=3
-let g:netrw_banner=0
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
