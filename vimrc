@@ -51,7 +51,7 @@ cnoremap <C-x> <Up>
 " Vim file search settings
 set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.min.*\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=dist\ --ignore=cordova\ --ignore=node_modules\ --ignore=vendor\ --ignore=phpmetrics\ --ignore=storage
 set grepformat=%f:%l:%c:%m
-cnoremap <C-G> silent grep! -Q 
+cnoremap <C-G> silent lgrep! -Q 
 
 " Native fuzzy-finding
 set wildignore+=**/node_modules/**
