@@ -48,4 +48,6 @@ function OpenExplorer()
     " TODO colours?
     " TODO keep the current buffer position if we reopen it
     " TODO refresh the filelist with <C-L>
+    " TODO test the behaviour with Nerdtree / netrw also installed
+    " TODO optimize file list generation (+ ignore node_modules/vendor?)
 endfunction
