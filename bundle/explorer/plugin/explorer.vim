@@ -8,7 +8,7 @@ function OpenExplorer()
 
     " Hiding the absolute path and indenting visually
     setlocal conceallevel=2
-    setlocal concealcursor=nvi
+    setlocal concealcursor=nv
 
     " Folding files depending on the depth of the path
     setlocal foldmethod=expr
@@ -40,6 +40,7 @@ function OpenExplorer()
     " Showing the full filename in the status bar
     autocmd CursorMoved <buffer> :execute "file " . getline('.')
 
+    " TODO prevent breaking the explorer by undoing the auto operations
     " TODO show directories before files (wrong order currently)
     " TODO file operations (open a command line: rm, mv, mkdir, touch, +permissions?)
     " TODO handle moves in the file operations (multiple files)
