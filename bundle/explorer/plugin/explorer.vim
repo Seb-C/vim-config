@@ -38,9 +38,9 @@ function OpenExplorer()
     exec "normal! ggvG$zCgg"
 
     " Showing the full filename in the status bar
-    autocmd CursorMoved <buffer> :execute "file " . getline('.')
+    "autocmd CursorMoved <buffer> :execute "file " . getline('.')
 
-    " TODO prevent breaking the explorer by undoing the auto operations
+    " TODO prevent breaking the explorer by undoing the auto operations (+ handle related events)
     " TODO show directories before files (wrong order currently)
     " TODO file operations (open a command line: rm, mv, mkdir, touch, +permissions?)
     " TODO handle moves in the file operations (multiple files)
@@ -51,4 +51,24 @@ function OpenExplorer()
     " TODO refresh the filelist with <C-L>
     " TODO test the behaviour with Nerdtree / netrw also installed
     " TODO optimize file list generation (+ ignore node_modules/vendor?)
+
+    function CallAction(timer)
+        unlet b:debounceTimer
+        call TextChanged()
+    endfunction
+    function DebounceTextChanged()
+        if exists("b:debounceTimer")
+            call timer_stop(b:debounceTimer)
+            unlet b:debounceTimer
+        endif
+
+        let b:debounceTimer = timer_start(700, 'CallAction')
+    endfunction
+
+    autocmd TextChanged <buffer> :call DebounceTextChanged()
+    autocmd InsertLeave <buffer> :call DebounceTextChanged()
+
+    function TextChanged()
+        echo "Called"
+    endfunction
 endfunction
