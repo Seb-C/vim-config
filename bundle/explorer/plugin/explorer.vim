@@ -46,7 +46,7 @@ function OpenExplorer()
     unlet oldUndoLevels
 
     " Showing the full filename in the status bar
-    autocmd CursorMoved <buffer> :execute "setlocal statusline=" . getline('.')
+    autocmd CursorMoved <buffer> :execute "setlocal statusline=" . substitute(fnameescape(getline('.')), "%", "%%", "g")
 
     " TODO handle undo events
     " TODO show directories before files (wrong order currently)
@@ -76,10 +76,16 @@ function OpenExplorer()
     autocmd TextChanged <buffer> :call DebounceTextChanged()
     autocmd InsertLeave <buffer> :call DebounceTextChanged()
 
-    let b:currentUndoRevision = undotree()["seq_cur"]
+    write! /tmp/testA
     function TextChanged()
-        let b:newUndoRevision = undotree()["seq_cur"]
-        echo "Called"
-        " Go to a revision = :undo rev
+        write! /tmp/testB
+        let b:changes = split(system("diff /tmp/testA /tmp/testB -y -W 9999 --suppress-common-lines"), '\r\|\n')
+        for b:change in b:changes
+            echo b:change
+        endfor
+
+        " < deleted
+        " > created
+        " | renamed
     endfunction
 endfunction
