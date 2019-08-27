@@ -46,7 +46,7 @@ function OpenExplorer()
     unlet oldUndoLevels
 
     " Showing the full filename in the status bar
-    autocmd CursorMoved <buffer> :execute "file " . getline('.')
+    autocmd CursorMoved <buffer> :execute "setlocal statusline=" . getline('.')
 
     " TODO handle undo events
     " TODO show directories before files (wrong order currently)
