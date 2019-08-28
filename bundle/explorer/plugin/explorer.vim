@@ -48,17 +48,18 @@ function OpenExplorer()
     " Showing the full filename in the status bar
     autocmd CursorMoved <buffer> :execute "setlocal statusline=" . substitute(fnameescape(getline('.')), "%", "%%", "g")
 
-    " TODO handle undo events
     " TODO show directories before files (wrong order currently)
-    " TODO file operations (open a command line: rm, mv, mkdir, touch, +permissions?)
-    " TODO handle moves in the file operations (multiple files)
     " TODO colours?
     " TODO keep the current buffer position if we reopen it
     " TODO refresh the filelist with <C-L>
     " TODO test the behaviour with Nerdtree / netrw also installed
     " TODO optimize file list generation (+ ignore node_modules/vendor?)
-
     " TODO loading in background the file list instead of blocking
+    " TODO make the executed commands part of the history
+    " TODO refresh after commands?
+    " TODO handle command errors
+    " TODO remove command screen asking for a key
+    " TODO display bugged if we write a filename in the middle of a directory
 
     function CallAction(timer)
         unlet b:debounceTimer
@@ -79,13 +80,50 @@ function OpenExplorer()
     write! /tmp/testA
     function TextChanged()
         write! /tmp/testB
-        let b:changes = split(system("diff /tmp/testA /tmp/testB -y -W 9999 --suppress-common-lines"), '\r\|\n')
-        for b:change in b:changes
-            echo b:change
+        let l:changes = split(system("diff /tmp/testA /tmp/testB -y -W 9999 --suppress-common-lines"), '\r\|\n')
+        let l:commands = []
+
+        for l:change in l:changes
+            if trim(l:change) == ""
+                continue
+            endif
+
+            let l:fragments = split(l:change . " ", '[[:space:]]\(|\|<\|>\)[[:space:]]\zs')
+
+            let l:oldName = trim(l:fragments[0][0:-3])
+            let l:operator = l:fragments[0][-2:-2]
+            let l:newName = trim(get(l:fragments, 1, ""))
+
+            let l:createParentPrefix = ""
+            let l:parentDir = fnamemodify(l:newName, ":h")
+            if l:parentDir != '.' && !isdirectory(l:parentDir)
+                let l:createParentPrefix = "mkdir -p " . l:parentDir . " && "
+            endif
+
+            if l:operator == '|'
+                call add(l:commands, l:createParentPrefix . "mv " . l:oldName . " " . l:newName)
+            elseif l:operator == '<'
+                if l:oldName[-1:-1] == '/'
+                    call add(l:commands, "rm -d " . l:oldName)
+                else
+                    call add(l:commands, "rm " . l:oldName)
+                endif
+            elseif l:operator == '>'
+                if l:newName[-1:-1] == '/'
+                    call add(l:commands, "mkdir -p " . l:newName)
+                else
+                    call add(l:commands, l:createParentPrefix . "touch " . l:newName)
+                endif
+            else
+                " TODO change permissions?
+                echoerr "Diff not recognized: " . l:change
+            endif
         endfor
 
-        " < deleted
-        " > created
-        " | renamed
+        if len(l:commands) > 0
+            execute input(":", "!" . join(l:commands, " && "))
+        endif
+
+        write! /tmp/testA
     endfunction
 endfunction
