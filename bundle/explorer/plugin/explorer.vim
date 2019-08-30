@@ -55,10 +55,7 @@ function OpenExplorer()
     " TODO test the behaviour with Nerdtree / netrw also installed
     " TODO optimize file list generation (+ ignore node_modules/vendor?)
     " TODO loading in background the file list instead of blocking
-    " TODO make the executed commands part of the history
     " TODO refresh after commands?
-    " TODO handle command errors
-    " TODO remove command screen asking for a key
     " TODO display bugged if we write a filename in the middle of a directory
 
     function CallAction(timer)
@@ -121,7 +118,7 @@ function OpenExplorer()
         endfor
 
         if len(l:commands) > 0
-            execute input(":", "!" . join(l:commands, " && "))
+            execute feedkeys(":!" . join(l:commands, " && "), "nt")
         endif
 
         write! /tmp/testA
