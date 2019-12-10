@@ -52,7 +52,7 @@ cnoremap <C-y> <Down>
 cnoremap <C-x> <Up>
 
 " Vim file search settings
-set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.min.*\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=dist\ --ignore=cordova\ --ignore=node_modules\ --ignore=vendor\ --ignore=phpmetrics\ --ignore=storage
+set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.min.*\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=dist\ --ignore=cordova\ --ignore=node_modules\ --ignore=vendor\ --ignore=phpmetrics\ --ignore=storage\ --hidden
 set grepformat=%f:%l:%c:%m
 cnoremap <C-G> silent lgrep! -Q 
 
