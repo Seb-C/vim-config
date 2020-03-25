@@ -76,7 +76,6 @@ let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 autocmd BufRead,BufNewFile *.pcss set filetype=scss
 autocmd BufRead,BufNewFile *.pcss set tabstop=4
-let g:typescript_indent_disable = 1
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
