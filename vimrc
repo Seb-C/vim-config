@@ -5,7 +5,6 @@ syntax on
 filetype plugin indent on
 
 source ~/.vim/config/sessions.vim
-source ~/.vim/config/window-resize.vim
 source ~/.vim/config/bad-habits.vim
 
 " Disabling netrw
