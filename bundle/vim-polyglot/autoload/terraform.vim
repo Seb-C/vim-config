@@ -1,58 +1,39 @@
-if exists('g:polyglot_disabled') && index(g:polyglot_disabled, 'terraform') != -1
-  finish
-endif
+if !exists('g:polyglot_disabled') || index(g:polyglot_disabled, 'terraform') == -1
 
-" Adapted from vim-hclfmt:
-" https://github.com/fatih/vim-hclfmt/blob/master/autoload/fmt.vim
-function! terraform#fmt()
-  if !filereadable(expand('%:p'))
-    return
+let s:cpo_save = &cpoptions
+set cpoptions&vim
+
+" Ensure no conflict with arguments from the environment
+let $TF_CLI_ARGS_fmt=''
+
+function! terraform#fmt() abort
+  " Save the view.
+  let curw = winsaveview()
+
+  " Make a fake change so that the undo point is right.
+  normal! ix
+  normal! "_x
+
+  " Execute `terraform fmt`, redirecting stderr to a temporary file.
+  let tmpfile = tempname()
+  let shellredir_save = &shellredir
+  let &shellredir = '>%s 2>'.tmpfile
+  silent execute '%!terraform fmt -no-color -'
+  let &shellredir = shellredir_save
+
+  " If there was an error, undo any changes and show stderr.
+  if v:shell_error != 0
+    silent undo
+    let output = readfile(tmpfile)
+    echo join(output, "\n")
   endif
-  let l:curw = winsaveview()
-  let l:tmpfile = tempname() . '.tf'
-  call writefile(getline(1, '$'), l:tmpfile)
-  let output = system('terraform fmt -write ' . l:tmpfile)
-  if v:shell_error == 0
-    try | silent undojoin | catch | endtry
-    call rename(l:tmpfile, resolve(expand('%')))
-    silent edit!
-    let &syntax = &syntax
-  else
-    echo output
-    call delete(l:tmpfile)
-  endif
-  call winrestview(l:curw)
+
+  " Delete the temporary file, and restore the view.
+  call delete(tmpfile)
+  call winrestview(curw)
 endfunction
 
-function! terraform#folds()
-  let thisline = getline(v:lnum)
-  if match(thisline, '^resource') >= 0
-    return '>1'
-  elseif match(thisline, '^provider') >= 0
-    return '>1'
-  elseif match(thisline, '^module') >= 0
-    return '>1'
-  elseif match(thisline, '^variable') >= 0
-    return '>1'
-  elseif match(thisline, '^output') >= 0
-    return '>1'
-  elseif match(thisline, '^data') >= 0
-    return '>1'
-  elseif match(thisline, '^terraform') >= 0
-    return '>1'
-  elseif match(thisline, '^locals') >= 0
-    return '>1'
-  else
-    return '='
-  endif
-endfunction
-
-function! terraform#foldText()
-  let foldsize = (v:foldend-v:foldstart)
-  return getline(v:foldstart).' ('.foldsize.' lines)'
-endfunction
-
-function! terraform#align()
+function! terraform#align() abort
   let p = '^.*=[^>]*$'
   if exists(':Tabularize') && getline('.') =~# '^.*=' && (getline(line('.')-1) =~# p || getline(line('.')+1) =~# p)
     let column = strlen(substitute(getline('.')[0:col('.')],'[^=]','','g'))
@@ -63,31 +44,37 @@ function! terraform#align()
   endif
 endfunction
 
-function! terraform#commands(A, L, P)
-  return [
-  \ 'apply',
-  \ 'console',
-  \ 'destroy',
-  \ 'env',
-  \ 'fmt',
-  \ 'get',
-  \ 'graph',
-  \ 'import',
-  \ 'init',
-  \ 'output',
-  \ 'plan',
-  \ 'providers',
-  \ 'push',
-  \ 'refresh',
-  \ 'show',
-  \ 'taint',
-  \ 'untaint',
-  \ 'validate',
-  \ 'version',
-  \ 'workspace',
-  \ '0.12checklist',
-  \ 'debug',
-  \ 'force-unlock',
-  \ 'state'
+function! terraform#commands(ArgLead, CmdLine, CursorPos) abort
+  let commands = [
+    \ 'apply',
+    \ 'console',
+    \ 'destroy',
+    \ 'env',
+    \ 'fmt',
+    \ 'get',
+    \ 'graph',
+    \ 'import',
+    \ 'init',
+    \ 'output',
+    \ 'plan',
+    \ 'providers',
+    \ 'refresh',
+    \ 'show',
+    \ 'taint',
+    \ 'untaint',
+    \ 'validate',
+    \ 'version',
+    \ 'workspace',
+    \ '0.12upgrade',
+    \ 'debug',
+    \ 'force-unlock',
+    \ 'push',
+    \ 'state'
   \ ]
+  return join(commands, "\n")
 endfunction
+
+let &cpoptions = s:cpo_save
+unlet s:cpo_save
+
+endif
