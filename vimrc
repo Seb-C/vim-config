@@ -170,6 +170,7 @@ let g:syntastic_typescript_checkers = ['tslint']
 let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
 let g:syntastic_auto_loc_list = 1
+let g:syntastic_html_checkers=['']
 
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
