@@ -5,6 +5,11 @@ if exists('b:did_ftplugin')
 endif
 let b:did_ftplugin = 1
 
+" This file is loaded on 'ecrystal' filetype
+if &filetype !=# 'crystal'
+  finish
+endif
+
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -34,11 +39,11 @@ setlocal suffixesadd=.cr
 
 " Set format for quickfix window
 setlocal errorformat=
-  \%ESyntax\ error\ in\ line\ %l:\ %m,
-  \%ESyntax\ error\ in\ %f:%l:\ %m,
-  \%EError\ in\ %f:%l:\ %m,
-  \%C%p^,
-  \%-C%.%#
+      \%ESyntax\ error\ in\ line\ %l:\ %m,
+      \%ESyntax\ error\ in\ %f:%l:\ %m,
+      \%EError\ in\ %f:%l:\ %m,
+      \%C%p^,
+      \%-C%.%#
 
 let g:crystal_compiler_command = get(g:, 'crystal_compiler_command', 'crystal')
 let g:crystal_auto_format = get(g:, 'crystal_auto_format', 0)
@@ -76,9 +81,14 @@ if &l:ofu ==# ''
   setlocal omnifunc=crystal_lang#complete
 endif
 
+if exists('AutoPairsLoaded')
+  let b:AutoPairs = { '{%': '%}' }
+  call extend(b:AutoPairs, g:AutoPairs, 'force')
+endif
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
-" vim: nowrap sw=2 sts=2 ts=8:
+" vim: sw=2 sts=2 et:
 
 endif

@@ -1,6 +1,6 @@
 ![vim-polyglot](https://i.imgur.com/9RxQK6k.png)
 
-[![Build Status][travis-img-url]][travis-url] [![Maintenance](https://img.shields.io/maintenance/yes/2019.svg?maxAge=2592000)]()
+[![Build Status][travis-img-url]][travis-url] [![Maintenance](https://img.shields.io/maintenance/yes/2020.svg?maxAge=2592000)]()
 
 [travis-img-url]: https://travis-ci.org/sheerun/vim-polyglot.svg
 [travis-url]: https://travis-ci.org/sheerun/vim-polyglot
@@ -10,7 +10,7 @@ A collection of language packs for Vim.
 > One to rule them all, one to find them, one to bring them all and in the darkness bind them.
 
 - It **won't affect your startup time**, as scripts are loaded only on demand\*.
-- It **installs and updates 120+ times faster** than the <!--Package Count-->146<!--/Package Count--> packages it consists of.
+- It **installs and updates 120+ times faster** than the <!--Package Count-->148<!--/Package Count--> packages it consists of.
 - Solid syntax and indentation support (other features skipped). Only the best language packs.
 - All unnecessary files are ignored (like enormous documentation from php support).
 - No support for esoteric languages, only most popular ones (modern too, like `slim`).
@@ -53,6 +53,7 @@ If you need full functionality of any plugin, please use it directly with your p
 - [asciidoc](https://github.com/asciidoc/vim-asciidoc) (syntax)
 - [autohotkey](https://github.com/hnamikaw/vim-autohotkey) (indent)
 - [blade](https://github.com/jwalton512/vim-blade) (syntax, indent, ftplugin)
+- [brewfile](https://github.com/bfontaine/Brewfile.vim) (syntax)
 - [c++11](https://github.com/octol/vim-cpp-enhanced-highlight) (syntax)
 - [c/c++](https://github.com/vim-jp/vim-cpp) (syntax)
 - [caddyfile](https://github.com/isobit/vim-caddyfile) (syntax, indent, ftplugin)
@@ -72,14 +73,15 @@ If you need full functionality of any plugin, please use it directly with your p
 - [dlang](https://github.com/JesseKPhillips/d.vim) (syntax, indent)
 - [dockerfile](https://github.com/ekalinin/Dockerfile.vim) (syntax, indent, ftplugin)
 - [elixir](https://github.com/elixir-lang/vim-elixir) (syntax, indent, compiler, autoload, ftplugin)
-- [elm](https://github.com/ElmCast/elm-vim) (syntax, indent, autoload, ftplugin)
+- [elm](https://github.com/andys8/vim-elm-syntax) (syntax, indent)
 - [emberscript](https://github.com/yalesov/vim-ember-script) (syntax, indent, ftplugin)
 - [emblem](https://github.com/yalesov/vim-emblem) (syntax, indent, ftplugin)
 - [erlang](https://github.com/vim-erlang/vim-erlang-runtime) (syntax, indent)
 - [ferm](https://github.com/vim-scripts/ferm.vim) (syntax)
 - [fish](https://github.com/georgewitteman/vim-fish) (syntax, indent, compiler, autoload, ftplugin)
 - [flatbuffers](https://github.com/dcharbon/vim-flatbuffers) (syntax)
-- [fsharp](https://github.com/fsharp/vim-fsharp) (syntax, indent)
+- [fsharp](https://github.com/ionide/Ionide-vim) (syntax, indent)
+- [gdscript](https://github.com/calviken/vim-gdscript3) (syntax, indent, ftplugin)
 - [git](https://github.com/tpope/vim-git) (syntax, indent, ftplugin)
 - [glsl](https://github.com/tikhomirov/vim-glsl) (syntax, indent)
 - [gmpl](https://github.com/maelvalais/gmpl.vim) (syntax)
@@ -108,7 +110,7 @@ If you need full functionality of any plugin, please use it directly with your p
 - [jsx](https://github.com/MaxMEllon/vim-jsx-pretty) (autoload, after)
 - [julia](https://github.com/JuliaEditorSupport/julia-vim) (syntax, indent, autoload, ftplugin)
 - [kotlin](https://github.com/udalov/kotlin-vim) (syntax, indent, ftplugin)
-- [latex](https://github.com/LaTeX-Box-Team/LaTeX-Box) (syntax, indent, ftplugin)
+- [latex](https://github.com/lervag/vimtex) (indent, compiler, autoload, ftplugin, syntax)
 - [less](https://github.com/groenewege/vim-less) (syntax, indent, ftplugin)
 - [lilypond](https://github.com/anowlcalledjosh/vim-lilypond) (syntax, indent, compiler, ftplugin)
 - [livescript](https://github.com/gkz/vim-ls) (syntax, indent, compiler, ftplugin)
@@ -161,7 +163,7 @@ If you need full functionality of any plugin, please use it directly with your p
 - [smt2](https://github.com/bohlender/vim-smt2) (syntax, autoload, ftplugin)
 - [solidity](https://github.com/tomlion/vim-solidity) (syntax, indent, ftplugin)
 - [stylus](https://github.com/wavded/vim-stylus) (syntax, indent, ftplugin)
-- [svelte](https://github.com/evanleck/vim-svelte) (syntax, indent)
+- [svelte](https://github.com/evanleck/vim-svelte) (syntax, indent, ftplugin)
 - [svg-indent](https://github.com/jasonshell/vim-svg-indent) (indent)
 - [svg](https://github.com/vim-scripts/svg.vim) (syntax)
 - [swift](https://github.com/keith/swift.vim) (syntax, indent, compiler, ftplugin, ctags)
