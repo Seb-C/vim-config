@@ -1,3 +1,4 @@
 {
+    "diagnostic.locationlist": false,
     "typescript.showUnused": false
 }
