@@ -84,6 +84,9 @@ let NERDTreeShowHidden=1
 let NERDTreeMapOpenSplit='s'
 let NERDTreeMapOpenVSplit='v'
 let NERDTreeMapQuit=''
+let NERDTreeCascadeSingleChildDir=0
+let NERDTreeCascadeOpenSingleChildDir=0
+let NERDTreeAutoDeleteBuffer=1
 
 " Color picker
 let g:vcoolor_lowercase = 0
