@@ -108,6 +108,7 @@ set linebreak
 set textwidth=0
 set showmatch
 set visualbell
+set t_vb=
 
 set hlsearch
 set smartcase
@@ -143,10 +144,6 @@ set timeoutlen=200
 set t_Co=256
 set background=dark
 colorscheme gruvbox
-
-set noerrorbells visualbell t_vb=
-autocmd GUIEnter * set visualbell t_vb=
-set novisualbell
 
 highlight ExtraWhitespace ctermbg=208
 
