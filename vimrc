@@ -43,6 +43,10 @@ let g:acp_EnableAtStartup = 1
 let g:acp_completeoptPreview = 1
 let g:acp_completeOption = &complete
 
+" Keybindings for coc.nvim
+nmap <silent> gd <Plug>(coc-type-definition)
+nmap <silent> gr <Plug>(coc-rename)
+
 " Vim command-mode autocompletion
 set wildmenu
 set wildmode=full
