@@ -174,7 +174,7 @@ let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 " Linters
 let g:syntastic_php_checkers = ['php']
 let g:syntastic_javascript_eslint_exe = '$(npm bin)/eslint'
-let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_javascript_checkers = []
 let g:syntastic_typescript_checkers = ['tslint']
 let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
