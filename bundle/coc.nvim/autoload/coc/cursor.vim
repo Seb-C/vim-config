@@ -39,3 +39,22 @@ function! coc#cursor#char_offset() abort
   return offset
 endfunction
 
+" Returns latest selection range
+function! coc#cursor#get_selection(char) abort
+  let m = a:char ? 'char' : visualmode()
+  if empty(m)
+    return v:null
+  endif
+  let [_, sl, sc, soff] = getpos(m ==# 'char' ? "'[" : "'<")
+  let [_, el, ec, eoff] = getpos(m ==# 'char' ? "']" : "'>")
+  let start_idx = coc#string#get_character(getline(sl), sc)
+  if m ==# 'V'
+    return [sl - 1, start_idx, el, 0]
+  endif
+  let line = getline(el)
+  let end_idx = coc#string#get_character(line, ec)
+  if m !=# 'char'
+    let end_idx = end_idx == strchars(line) ? end_idx : end_idx + 1
+  endif
+  return [sl - 1, start_idx, el - 1, end_idx]
+endfunction

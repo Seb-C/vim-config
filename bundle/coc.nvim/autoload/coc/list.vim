@@ -3,12 +3,14 @@ let s:is_vim = !has('nvim')
 let s:prefix = '[List Preview]'
 " filetype detect could be slow.
 let s:filetype_map = {
-  \ 'vim': 'vim',
-  \ 'ts': 'typescript',
-  \ 'js': 'javascript',
-  \ 'html': 'html',
-  \ 'css': 'css'
-  \ }
+      \ 'c': 'c',
+      \ 'py': 'python',
+      \ 'vim': 'vim',
+      \ 'ts': 'typescript',
+      \ 'js': 'javascript',
+      \ 'html': 'html',
+      \ 'css': 'css'
+      \ }
 
 function! coc#list#getchar() abort
   return coc#prompt#getchar()
@@ -33,7 +35,7 @@ endfunction
 function! coc#list#options(...)
   let list = ['--top', '--tab', '--normal', '--no-sort', '--input', '--strict',
         \ '--regex', '--interactive', '--number-select', '--auto-preview',
-        \ '--ignore-case', '--no-quit', '--first']
+        \ '--ignore-case', '--no-quit', '--first', '--reverse']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
@@ -66,7 +68,7 @@ function! coc#list#create(position, height, name, numberSelect)
     setl norelativenumber
     setl signcolumn=yes
   endif
-  return [bufnr('%'), win_getid()]
+  return [bufnr('%'), win_getid(), tabpagenr()]
 endfunction
 
 " close list windows
@@ -96,7 +98,10 @@ function! coc#list#setup(source)
   let source = a:source[8:]
   let name = toupper(source[0]).source[1:]
   execute 'syntax match Coc'.name.'Line /\v^.*$/'
-  nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  if !s:is_vim
+    " Repeat press <C-f> and <C-b> would invoke <esc> on vim
+    nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  endif
 endfunction
 
 " Check if previewwindow exists on current tab.
@@ -116,7 +121,7 @@ function! coc#list#get_preview(...) abort
   let info = gettabinfo(tabnr)
   if !empty(info)
     for win in info[0]['windows']
-      if getwinvar(win, 'previewwindow', 0)
+      if gettabwinvar(tabnr, win, 'previewwindow', 0)
         return win
       endif
     endfor
@@ -140,40 +145,10 @@ function! coc#list#scroll_preview(dir) abort
   endif
 endfunction
 
-function! coc#list#restore(winid, height)
-  if has('nvim') && nvim_win_is_valid(a:winid)
-    call nvim_win_set_height(a:winid, a:height)
-  elseif s:is_vim && exists('*win_execute')
-    call win_execute(a:winid, 'noa resize '.a:height, 'silent!')
-    redraw
-  endif
-endfunction
-
-function! coc#list#set_height(height) abort
-  if winnr('$') == 1| return | endif
-  execute 'resize '.a:height
-endfunction
-
-function! coc#list#hide(original, height, winid) abort
-  let arr = win_id2tabwin(a:winid)
-  " close preview window
-  if !empty(arr) && arr[0] != 0
-    silent! pclose!
-    let previewwin = coc#list#get_preview(arr[0])
-    call coc#window#close(previewwin)
-  endif
-  if !empty(getwininfo(a:original))
-    call win_gotoid(a:original)
-  endif
-  if a:winid
-    silent! call coc#window#close(a:winid)
-  endif
-  if !empty(a:height) && win_getid() == a:original
-    if exists('*nvim_win_set_height')
-      call nvim_win_set_height(a:original, a:height)
-    elseif win_getid() == a:original
-      execute 'resize '.a:height
-    endif
+function! coc#list#close_preview(tabnr) abort
+  let winid = coc#list#get_preview(a:tabnr)
+  if winid != -1
+    call coc#window#close(winid)
   endif
 endfunction
 
@@ -188,20 +163,12 @@ endfunction
 " config.hlGroup - (optional) highlight group.
 " config.maxHeight - (optional) max height of window, valid for 'below' & 'top' position.
 function! coc#list#preview(lines, config) abort
-  if s:is_vim && !exists('*win_execute')
-    throw 'win_execute function required for preview, please upgrade your vim.'
-    return
-  endif
   let name = fnamemodify(get(a:config, 'name', ''), ':.')
   let lines = a:lines
   if empty(lines)
     if get(a:config, 'scheme', 'file') != 'file'
       let bufnr = s:load_buffer(name)
-      if bufnr != 0
-        let lines = getbufline(bufnr, 1, '$')
-      else
-        let lines = ['']
-      endif
+      let lines = bufnr == 0 ? [''] : getbufline(bufnr, 1, '$')
     else
       " Show empty lines so not close window.
       let lines = ['']
@@ -246,11 +213,7 @@ function! coc#list#preview(lines, config) abort
       let winid = win_getid()
     endif
     noa call winrestview({"lnum": lnum ,"topline":s:get_topline(a:config, lnum, winid)})
-    call setwinvar(winid, '&signcolumn', 'no')
-    call setwinvar(winid, '&number', 1)
-    call setwinvar(winid, '&cursorline', 0)
-    call setwinvar(winid, '&relativenumber', 0)
-    call setwinvar(winid, 'previewwindow', 1)
+    call s:set_preview_options(winid)
     noa call win_gotoid(curr)
   else
     let height = s:get_height(lines, a:config)
@@ -287,13 +250,16 @@ function! coc#list#preview(lines, config) abort
       let s:filetype_map[extname] = ft
     endif
   endif
-  call sign_unplace('coc', {'buffer': bufnr})
+  call sign_unplace('CocCursorLine', {'buffer': bufnr})
   call coc#compat#execute(winid, 'call clearmatches()')
+  if !s:is_vim
+    " vim send <esc> to buffer on FocusLost, <C-w> and other cases
+    call coc#compat#execute(winid, 'nnoremap <silent><nowait><buffer> <esc> :call CocActionAsync("listCancel")<CR>')
+  endif
   if !empty(range)
-    call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
+    call sign_place(1, 'CocCursorLine', 'CocCurrentLine', bufnr, {'lnum': lnum})
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
   endif
-  redraw
 endfunction
 
 function! s:get_height(lines, config) abort
@@ -321,4 +287,12 @@ function! s:get_topline(config, lnum, winid) abort
 
   let toplineOffset = get(a:config, 'toplineOffset', 3)
   return max([1, a:lnum - toplineOffset])
+endfunction
+
+function! s:set_preview_options(winid) abort
+  call setwinvar(a:winid, '&signcolumn', 'no')
+  call setwinvar(a:winid, '&number', 1)
+  call setwinvar(a:winid, '&cursorline', 0)
+  call setwinvar(a:winid, '&relativenumber', 0)
+  call setwinvar(a:winid, 'previewwindow', 1)
 endfunction

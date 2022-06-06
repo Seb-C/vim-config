@@ -76,30 +76,61 @@
           "default": false,
           "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicated feature regstration."
         },
-        "disableWorkspaceFolders": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable workspaceFolders feature for this languageserver."
-        },
         "disableSnippetCompletion": {
           "type": "boolean",
           "default": false,
           "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
         },
-        "disableDiagnostics": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable handle diagnostics for this languageserver."
-        },
-        "disableCompletion": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable completion feature for this languageserver."
+        "disabledFeatures": {
+          "type": "array",
+          "default": [],
+          "description": "Disabled features for this languageserver.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "completion",
+              "configuration",
+              "workspaceFolders",
+              "diagnostics",
+              "willSave",
+              "willSaveUntil",
+              "didSaveTextDocument",
+              "fileSystemWatcher",
+              "hover",
+              "signatureHelp",
+              "definition",
+              "references",
+              "documentHighlight",
+              "documentSymbol",
+              "workspaceSymbol",
+              "codeAction",
+              "codeLens",
+              "formatting",
+              "documentFormatting",
+              "documentRangeFormatting",
+              "documentOnTypeFormatting",
+              "rename",
+              "documentLink",
+              "executeCommand",
+              "pullConfiguration",
+              "typeDefinition",
+              "implementation",
+              "declaration",
+              "color",
+              "foldingRange",
+              "selectionRange",
+              "progress",
+              "callHierarchy",
+              "linkedEditing",
+              "fileEvents",
+              "semanticTokens"
+            ]
+          }
         },
         "formatterPriority": {
           "type": "number",
           "default": 0,
-          "description": "Priority of this languageserver's fomatter."
+          "description": "Priority of this languageserver's formatter."
         },
         "env": {
           "type": "object",
@@ -156,7 +187,7 @@
         },
         "progressOnInitialization": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable progress report on languageserver initialize."
         },
         "initializationOptions": {
@@ -192,11 +223,9 @@
           "default": "127.0.0.1",
           "description": "Host of server"
         },
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
         "disableDynamicRegister": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "enable": {},
         "rootPatterns": {},
@@ -258,10 +287,8 @@
         "env": {},
         "enable": {},
         "disableDynamicRegister": {},
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},
@@ -309,10 +336,8 @@
         "env": {},
         "enable": {},
         "disableDynamicRegister": {},
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},
@@ -355,9 +380,15 @@
       "default": "npm",
       "description": "Command or absolute path to npm or yarn."
     },
+    "suggest.selection": {
+      "type": "string",
+      "default": "none",
+      "description": "Controls how suggestions are pre-selected when showing the suggest list.",
+      "enum": ["none", "recentlyUsed", "recentlyUsedByPrefix"]
+    },
     "suggest.enablePreselect": {
       "type": "boolean",
-      "description": "Enable preselect feature of LSP, only works on neovim",
+      "description": "Enable preselect feature of LSP, only works on neovim, required for suggest.selection config.",
       "default": false
     },
     "suggest.enablePreview": {
@@ -412,11 +443,6 @@
       "default": 99,
       "description": "Priority of language sources."
     },
-    "suggest.numberSelect": {
-      "type": "boolean",
-      "description": "Input number to select complete item, works on neovim >= 0.4.0 only.",
-      "default": false
-    },
     "suggest.disableKind": {
       "type": "boolean",
       "description": "Remove kind field from vim complete item.",
@@ -462,29 +488,24 @@
       "description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
       "default": false
     },
+    "suggest.minTriggerInputLength": {
+      "type": "integer",
+      "default": 1,
+      "description": "Minimal input length for trigger completion, default 1"
+    },
+    "suggest.triggerCompletionWait": {
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 50,
+      "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
+    },
     "suggest.timeout": {
       "type": "integer",
       "default": 5000,
       "minimum": 500,
       "maximum": 15000,
-      "description": "Timeout for completion, in miliseconds."
-    },
-    "suggest.minTriggerInputLength": {
-      "type": "integer",
-      "default": 1,
-      "description": "Mininal input length for trigger completion, default 1"
-    },
-    "suggest.triggerCompletionWait": {
-      "type": "integer",
-      "default": 100,
-      "minimum": 30,
-      "maximum": 500,
-      "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
-    },
-    "suggest.echodocSupport": {
-      "type": "boolean",
-      "default": false,
-      "description": "When enabled, add function signature to user_data.signature to support echodoc.vim"
+      "description": "Timeout for completion, in milliseconds."
     },
     "suggest.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",
@@ -573,7 +594,46 @@
     },
     "suggest.asciiCharactersOnly": {
       "type": "boolean",
-      "description": "Suggest ASCII characters only",
+      "description": "Trigger suggest with ASCII characters only",
+      "default": false
+    },
+    "suggest.ignoreRegexps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Regexps to ignore when trigger suggest",
+      "default": []
+    },
+    "documentHighlight.priority": {
+      "type": "number",
+      "default": -1,
+      "description": "Match priority used by document highlight, see ':h matchadd'"
+    },
+    "documentHighlight.timeout": {
+      "type": "integer",
+      "default": 300,
+      "minimum": 200,
+      "maximum": 5000,
+      "description": "Timeout for document highlight, in milliseconds."
+    },
+    "colors.filetypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "colors.highlightPriority": {
+      "type": "number",
+      "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
+      "default": 1000,
+      "maximum": 4096
+    },
+    "links.tooltip": {
+      "type": "boolean",
+      "description": "Show tooltip of link under cursor on CursorHold, neovim only",
       "default": false
     },
     "diagnostic.enable": {
@@ -583,8 +643,15 @@
     },
     "diagnostic.highlighLimit": {
       "type": "number",
-      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responsing",
+      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
       "default": 1000
+    },
+    "diagnostic.highlightPriority": {
+      "type": "number",
+      "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
+      "default": 4096,
+      "maximum": 4096,
+      "minimum": 110
     },
     "diagnostic.autoRefresh": {
       "type": "boolean",
@@ -595,6 +662,24 @@
       "type": "string",
       "description": "Used for filter diagnostics by diagnostic severity.",
       "default": "hint",
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.locationlistLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostics in locationlist.",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.signLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostics displayed in signcolumn.",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.messageLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostic message in float window/popup.",
+      "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
     "diagnostic.locationlistUpdate": {
@@ -633,6 +718,17 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "diagnostic.virtualTextLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostic message in virtual text by level",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.virtualTextWinCol": {
+      "type": ["number", "null"],
+      "description": "Window column number to align virtual text",
+      "default": null
+    },
     "diagnostic.virtualTextCurrentLineOnly": {
       "type": "boolean",
       "description": "Only show virtualText diagnostic on current cursor line",
@@ -668,11 +764,6 @@
       "default": "always",
       "description": "When to enable show messages of diagnostics.",
       "enum": ["always", "jump", "never"]
-    },
-    "diagnostic.highlightOffset": {
-      "type": "number",
-      "description": "Offset number of buffer.addHighlight, neovim only.",
-      "default": 1000
     },
     "diagnostic.signPriority": {
       "type": "number",
@@ -719,7 +810,7 @@
     },
     "diagnostic.filetypeMap": {
       "type": "object",
-      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use `\"default\": \"bufferType\"`",
+      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type use `\"default\": \"bufferType\"`",
       "default": {}
     },
     "diagnostic.format": {
@@ -735,7 +826,7 @@
     "diagnostic.showUnused": {
       "type": "boolean",
       "default": true,
-      "description": "Show diagnostics with unused tag."
+      "description": "Show diagnostics with unused tag, affects highlight, sign, virtual text, message"
     },
     "diagnostic.showDeprecated": {
       "type": "boolean",
@@ -752,7 +843,7 @@
       "default": 500,
       "minimum": 200,
       "maximum": 1000,
-      "description": "Timeout for trigger signature help, in miliseconds."
+      "description": "Timeout for trigger signature help, in milliseconds."
     },
     "signature.target": {
       "type": "string",
@@ -793,10 +884,16 @@
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
       "default": false
     },
+    "codeLens.position": {
+      "type": "string",
+      "enum": ["top", "eol", "right_align"],
+      "description": "Position of codeLens, requires nvim >= 0.6.0",
+      "default": "top"
+    },
     "codeLens.separator": {
       "type": "string",
       "description": "Separator text for codeLens in virtual text",
-      "default": "‣"
+      "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",
@@ -810,7 +907,7 @@
     },
     "refactor.saveToFile": {
       "type": "boolean",
-      "description": "Save to file when write refactor buffer with ':noa wa' command, set to false if you want save buffer by yourself.",
+      "description": "Save changed buffer to file when write refactor buffer with ':noa wa' command.",
       "default": true
     },
     "refactor.beforeContext": {
@@ -822,6 +919,11 @@
       "type": "number",
       "default": 3,
       "description": "Print num lines of trailing context after each match."
+    },
+    "refactor.showMenu": {
+      "type": "string",
+      "default": "<Tab>",
+      "description": "Refactor buffer local mapping to bring up menu for this chunk."
     },
     "hover.target": {
       "type": "string",
@@ -858,13 +960,18 @@
     },
     "dialog.maxHeight": {
       "type": "number",
-      "default": 20,
+      "default": 30,
       "description": "Maximum height of dialog window."
     },
     "dialog.maxWidth": {
       "type": "number",
       "default": 80,
       "description": "Maximum width of dialog window."
+    },
+    "dialog.rounded": {
+      "type": "boolean",
+      "default": true,
+      "description": "use rounded border for dialog window."
     },
     "dialog.confirmKey": {
       "type": "string",
@@ -891,40 +998,77 @@
       "default": null,
       "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
     },
-    "notification.marginTop": {
-      "type": "number",
-      "default": 1,
-      "description": "Margin top for notification dialog."
+    "dialog.shortcutHighlight": {
+      "type": "string",
+      "default": "MoreMsg",
+      "description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
+    },
+    "notification.border": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable rounded border for notification windows."
+    },
+    "notification.timeout": {
+      "type": "integer",
+      "default": 10000,
+      "description": "Timeout for auto close notifications, in miniseconds."
     },
     "notification.marginRight": {
-      "type": "number",
-      "default": 1,
-      "description": "Margin right for notification dialog."
+      "type": "integer",
+      "default": 10,
+      "description": "Margin right to the right of editor window."
+    },
+    "notification.focusable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
     },
     "notification.maxWidth": {
-      "type": "number",
+      "type": "integer",
       "default": 60,
       "description": "Maximum content width of notification dialog."
     },
     "notification.maxHeight": {
-      "type": "number",
+      "type": "integer",
       "default": 10,
       "description": "Maximum content height of notification dialog."
+    },
+    "notification.preferMenuPicker": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use menu picker for message notification with actions."
+    },
+    "notification.minProgressWidth": {
+      "type": "integer",
+      "default": 30,
+      "description": "Minimal with of progress notification."
     },
     "notification.highlightGroup": {
       "type": "string",
       "default": "CocFloating",
       "description": "Highlight group of notification dialog."
     },
-    "notification.minProgressWidth": {
-      "type": "number",
+    "notification.winblend": {
+      "type": "integer",
       "default": 30,
-      "description": "Minimum width of progress notification."
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Winblend option of notification window, neovim only."
+    },
+    "workspace.openOutputCommand": {
+      "type": "string",
+      "default": "vs",
+      "description": "Command used to open output channel."
+    },
+    "workspace.openResourceCommand": {
+      "type": "string",
+      "default": "tab drop",
+      "description": "Command to open files that not loaded, load files as hidden buffers when empty."
     },
     "workspace.ignoredFiletypes": {
       "type": "array",
-      "default": ["markdown", "log", "txt", "help"],
-      "description": "Filetypes that should be ignored for resolve workspace folder.",
+      "default": [],
+      "description": "Filetypes that should be ignored for workspace folder resolve.",
       "items": {
         "type": "string"
       }
@@ -932,7 +1076,15 @@
     "workspace.bottomUpFiletypes": {
       "type": "array",
       "default": [],
-      "description": "Filetypes that should have workspace folder should resolved from base directory of file.",
+      "description": "Filetypes that should have workspace folder should resolved from base directory of file, or [\"*\"] for any filetype.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workspace.ignoredFolders": {
+      "type": "array",
+      "default": ["$HOME"],
+      "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
       "items": {
         "type": "string"
       }
@@ -940,7 +1092,12 @@
     "workspace.workspaceFolderCheckCwd": {
       "type": "boolean",
       "default": true,
-      "description": "Whether the cwd directory should be checked first when resolving workspace folder."
+      "description": "Whether the current working directory should be used first when checking patterns match for workspace folder."
+    },
+    "workspace.workspaceFolderFallbackCwd": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use current working directory as workspace folder when no root patterns resolved."
     },
     "list.indicator": {
       "type": "string",
@@ -952,10 +1109,15 @@
       "default": false,
       "description": "Whether to align lists in columns, default: `false`"
     },
+    "list.menuAction": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use menu picker instead of confirm() for choose action."
+    },
     "list.interactiveDebounceTime": {
       "type": "number",
       "default": 100,
-      "description": "Debouce time for input change on interactive mode."
+      "description": "Debounce time for input change on interactive mode."
     },
     "list.height": {
       "type": "number",
@@ -965,12 +1127,12 @@
     "list.statusLineSegments": {
       "type": ["array", "null"],
       "default": [
-        "%#CocListMode#-- %{get(b:list_status, \"mode\", \"\")} --%*",
-        "%{get(b:list_status, \"loading\", \"\")}",
-        "%{get(b:list_status, \"args\", \"\")}",
-        "(%L/%{get(b:list_status, \"total\", \"\")})",
+        "%#CocListMode#-- %{coc#list#status(\"mode\")} --%*",
+        "%{coc#list#status(\"loading\")}",
+        "%{coc#list#status(\"args\")}",
+        "(%L/%{coc#list#status(\"total\")})",
         "%=",
-        "%#CocListPath# %{get(b:list_status, \"cwd\", \"\")} %l/%L%*"
+        "%#CocListPath# %{coc#list#status(\"cwd\")} %l/%L%*"
       ],
       "items": {
         "types": "string"
@@ -993,8 +1155,8 @@
       "description": "Enable extended search mode which allows multiple search patterns delimited by spaces."
     },
     "list.limitLines": {
-      "type": "number",
-      "default": 30000,
+      "type": ["number", "null"],
+      "default": null,
       "description": "Limit lines for list buffer."
     },
     "list.maxPreviewHeight": {
@@ -1009,7 +1171,7 @@
     },
     "list.matchHighlightGroup": {
       "type": "string",
-      "default": "Search",
+      "default": "CocSearch",
       "description": "Highlight group used for matched texts in list window."
     },
     "list.previewHighlightGroup": {
@@ -1083,12 +1245,47 @@
     "cursors.nextKey": {
       "type": "string",
       "default": "<C-n>",
-      "description": "Key used for jump to next cursors position. "
+      "description": "Key used for jump to next cursors position."
     },
     "cursors.previousKey": {
       "type": "string",
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
+    },
+    "cursors.wrapscan": {
+      "type": "boolean",
+      "default": true,
+      "description": "Searches wrap around the first or last cursors range."
+    },
+    "semanticTokens.filetypes": {
+      "type": "array",
+      "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "semanticTokens.highlightPriority": {
+      "type": "number",
+      "description": "Priority for semantic tokens highlight.",
+      "default": 2048,
+      "maximum": 4096
+    },
+    "semanticTokens.incrementTypes": {
+      "type": "array",
+      "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
+      "default": ["variable", "string", "parameter"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "semanticTokens.combinedModifiers": {
+      "type": "array",
+      "description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
+      "default": ["deprecated"],
+      "items": {
+        "type": "string"
+      }
     },
     "tree.closedIcon": {
       "type": "string",
@@ -1150,6 +1347,11 @@
       "default": true,
       "description": "Show line number of symbols."
     },
+    "outline.detailAsDescription": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show detail as description aside with label, when false detail will be shown in tooltip on cursor hold."
+    },
     "outline.splitCommand": {
       "type": "string",
       "default": "botright 30vs",
@@ -1159,6 +1361,11 @@
       "type": "boolean",
       "default": true,
       "description": "Reveal item in outline tree on cursor hold."
+    },
+    "outline.autoWidth": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically increase window width to avoid wrapped lines."
     },
     "outline.keepWindow": {
       "type": "boolean",
@@ -1170,6 +1377,11 @@
       "default": "category",
       "description": "Sort method for symbols.",
       "enum": ["position", "name", "category"]
+    },
+    "outline.switchSortKey": {
+      "type": "string",
+      "default": "<C-s>",
+      "description": "The key used to switch sort method for symbols provider of current tree view."
     },
     "outline.expandLevel": {
       "type": "number",
@@ -1205,6 +1417,11 @@
       "default": true,
       "description": "Enable tooltip to show relative filepath of call hierarchy."
     },
+    "coc.preferences.enableLinkedEditing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable linked editing support."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,
@@ -1214,17 +1431,6 @@
       "type": "string",
       "default": "10MB",
       "description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
-    },
-    "coc.preferences.promptWorkspaceEdit": {
-      "type": "boolean",
-      "description": "Prompt confirm from user when apply workspace edit for unloaded files.",
-      "default": true
-    },
-    "coc.preferences.listOfWorkspaceEdit": {
-      "type": "string",
-      "default": "quickfix",
-      "description": "List should contains changed locations after workspace edit, default to vim's quickfix",
-      "enum": ["quickfix", "location", "none"]
     },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
@@ -1242,15 +1448,10 @@
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
     },
-    "coc.preferences.colorSupport": {
+    "coc.preferences.snippetHighlight": {
       "type": "boolean",
-      "description": "Enable color highlight if language server support it.",
-      "default": true
-    },
-    "coc.preferences.semanticTokensHighlights": {
-      "type": "boolean",
-      "description": "Enable semanticTokens highlight if language server support it.",
-      "default": true
+      "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
+      "default": false
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
@@ -1264,11 +1465,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "coc.preferences.enableFloatHighlight": {
-      "type": "boolean",
-      "description": "Enable highlight for floating window.",
-      "default": true
     },
     "coc.preferences.rootPatterns": {
       "type": "array",
@@ -1358,13 +1554,13 @@
       "maximum": 5000,
       "description": "Will save handler timeout"
     },
+    "coc.preferences.renameFillCurrent": {
+      "type": "boolean",
+      "default": true,
+      "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
+    },
     "coc.source.around.enable": {
       "type": "boolean",
-      "default": true
-    },
-    "coc.source.around.firstMatch": {
-      "type": "boolean",
-      "description": "Filter complete items by first letter strict match.",
       "default": true
     },
     "coc.source.around.shortcut": {
@@ -1393,11 +1589,6 @@
     "coc.source.buffer.priority": {
       "type": "integer",
       "default": 1
-    },
-    "coc.source.buffer.firstMatch": {
-      "type": "boolean",
-      "description": "Filter complete items by first letter strict match.",
-      "default": true
     },
     "coc.source.buffer.ignoreGitignore": {
       "type": "boolean",

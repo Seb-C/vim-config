@@ -2,7 +2,7 @@ Installation
 ============
 
 ```
-sudo apt-get install vim vim-gui-common the-silver-searcher
+sudo apt-get install vim-gtk3 vim-gui-common silver-searcher-ag
 git clone https://github.com/Seb-C/vim-config.git ~/.vim
 ```
 
@@ -14,10 +14,5 @@ shopt -s expand_aliases"
 
 Coc extensions to install:
 ```
-CocInstall coc-svg
-CocInstall coc-yaml
-CocInstall coc-css
-CocInstall coc-html
-CocInstall coc-phpls
-CocInstall coc-json
+CocInstall coc-css coc-phpls coc-docker coc-eslint coc-git coc-go coc-html coc-json coc-sh coc-sql coc-xml coc-yaml coc-svg
 ```

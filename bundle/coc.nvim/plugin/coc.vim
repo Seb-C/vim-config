@@ -43,7 +43,7 @@ let g:coc_service_initialized = 0
 let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h')
 let s:is_vim = !has('nvim')
-let s:is_gvim = get(v:, 'progname', '') ==# 'gvim'
+let s:is_gvim = s:is_vim && has("gui_running")
 
 if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
   call coc#rpc#start_server()
@@ -60,10 +60,28 @@ endfunction
 function! CocPopupCallback(bufnr, arglist) abort
   if len(a:arglist) == 2
     if a:arglist[0] == 'confirm'
-      call coc#rpc#notify('PromptInsert', [a:arglist[1]])
+      call coc#rpc#notify('PromptInsert', [a:arglist[1], a:bufnr])
     elseif a:arglist[0] == 'exit'
       execute 'silent! bd! '.a:bufnr
       "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])
+    elseif a:arglist[0] == 'change'
+      let text = a:arglist[1]
+      let current = getbufvar(a:bufnr, 'current', '')
+      if text !=# current
+        call setbufvar(a:bufnr, 'current', text)
+        let cursor = term_getcursor(a:bufnr)
+        let info = {
+              \ 'lnum': cursor[0],
+              \ 'col': cursor[1],
+              \ 'line': text,
+              \ 'changedtick': 0
+              \ }
+        call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
+      endif
+    elseif a:arglist[0] == 'send'
+      let key = a:arglist[1]
+      let escaped = strcharpart(key, 1, strchars(key) - 2)
+      call coc#rpc#notify('PromptKeyPress', [a:bufnr, escaped])
     endif
   endif
 endfunction
@@ -97,12 +115,12 @@ endfunction
 
 function! CocLocations(id, method, ...) abort
   let args = [a:id, a:method] + copy(a:000)
-  call coc#rpc#request('findLocations', args)
+  return coc#rpc#request('findLocations', args)
 endfunction
 
 function! CocLocationsAsync(id, method, ...) abort
   let args = [a:id, a:method] + copy(a:000)
-  call coc#rpc#notify('findLocations', args)
+  return s:AsyncRequest('findLocations', args)
 endfunction
 
 function! CocRequestAsync(...)
@@ -157,7 +175,7 @@ function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
     echohl MoreMsg
-    echom 'Config directory "'.home.'" not exists, create? (y/n)'
+    echom 'Config directory "'.home.'" does not exist, create? (y/n)'
     echohl None
     let confirm = nr2char(getchar())
     redraw!
@@ -243,14 +261,44 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
+function! s:HandleCharInsert(char, bufnr) abort
+  if get(g:, 'coc_disable_space_report', 0)
+    let g:coc_disable_space_report = 0
+    if a:char ==# ' '
+      return
+    endif
+  endif
+  call s:Autocmd('InsertCharPre', a:char, a:bufnr)
+endfunction
+
+function! s:HandleCompleteDone(complete_item) abort
+  let item = copy(a:complete_item)
+  if get(g:, 'coc_hide_pum', 0)
+    let item['close'] = v:true
+    let g:coc_hide_pum = 0
+  endif
+  if get(g:, 'coc_disable_complete_done', 0)
+    let g:coc_disable_complete_done = 0
+    let item['closed'] = v:true
+  endif
+  call s:Autocmd('CompleteDone', item)
+endfunction
+
+function! s:HandleWinScrolled(winid) abort
+  if getwinvar(a:winid, 'float', 0)
+    call coc#float#nvim_scrollbar(a:winid)
+  endif
+  call s:Autocmd('WinScrolled', a:winid)
+endfunction
+
 function! s:SyncAutocmd(...)
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#request('CocAutocmd', a:000)
@@ -287,45 +335,52 @@ function! s:Enable(initialize)
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
-      autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
       autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar(win_getid())
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
-      if exists('##WinClosed')
-        autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
-        autocmd WinClosed       * call s:Autocmd('WinClosed', +expand('<afile>'))
-      endif
+    endif
+    if exists('##WinClosed')
+      autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
+      autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
+    elseif exists('##TabEnter')
+      autocmd TabEnter          * call coc#notify#reflow()
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
     endif
+    if exists('##WinScrolled')
+      autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
+    endif
+    autocmd TabNew              * call s:Autocmd('TabNew', tabpagenr())
+    autocmd TabClosed           * call s:Autocmd('TabClosed', +expand('<afile>'))
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
     autocmd WinEnter            * call s:Autocmd('WinEnter', win_getid())
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
-    autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char, bufnr('%'))
+    autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
+    autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
-      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
+      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
     endif
-    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
+    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), coc#util#change_info())
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
-    autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
+    autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
-    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
-    autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'))
+    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')], coc#util#suggest_variables(bufnr('%')))
+    autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
-    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
+    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'), bufname(+expand('<abuf>')), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
+    autocmd VimLeavePre         * call s:Autocmd('VimLeavePre')
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Hi()
@@ -345,69 +400,81 @@ function! s:Hi() abort
   hi default CocHintSign      ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline     cterm=underline gui=underline
+  hi default CocUnderline     term=underline cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough cterm=strikethrough gui=strikethrough
+    hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
   else
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default link CocFadeOut       Conceal
-  hi default link CocMarkdownCode     markdownCode
-  hi default link CocMarkdownHeader   markdownH1
-  hi default link CocMenuSel          PmenuSel
-  hi default link CocErrorFloat       CocErrorSign
-  hi default link CocWarningFloat     CocWarningSign
-  hi default link CocInfoFloat        CocInfoSign
-  hi default link CocHintFloat        CocHintSign
-  hi default link CocErrorHighlight   CocUnderline
-  hi default link CocWarningHighlight CocUnderline
-  hi default link CocInfoHighlight    CocUnderline
-  hi default link CocHintHighlight    CocUnderline
+  hi default CocDisabled      guifg=#999999   ctermfg=gray
+  hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocFadeOut             Conceal
+  hi default link CocMarkdownCode        markdownCode
+  hi default link CocMarkdownHeader      markdownH1
+  hi default link CocMenuSel             PmenuSel
+  hi default link CocErrorFloat          CocErrorSign
+  hi default link CocWarningFloat        CocWarningSign
+  hi default link CocInfoFloat           CocInfoSign
+  hi default link CocHintFloat           CocHintSign
+  hi default link CocErrorHighlight      CocUnderline
+  hi default link CocWarningHighlight    CocUnderline
+  hi default link CocInfoHighlight       CocUnderline
+  hi default link CocHintHighlight       CocUnderline
   hi default link CocDeprecatedHighlight CocStrikeThrough
   hi default link CocUnusedHighlight     CocFadeOut
-  hi default link CocListMode ModeMsg
-  hi default link CocListPath Comment
-  hi default link CocHighlightText  CursorColumn
-  hi default link CocHoverRange     Search
-  hi default link CocCursorRange    Search
-  hi default link CocHighlightRead  CocHighlightText
-  hi default link CocHighlightWrite CocHighlightText
+  hi default link CocListMode            ModeMsg
+  hi default link CocListPath            Comment
+  hi default link CocHighlightText       CursorColumn
+  hi default link CocHoverRange          Search
+  hi default link CocCursorRange         Search
+  hi default link CocLinkedEditing       CocCursorRange
+  hi default link CocHighlightRead       CocHighlightText
+  hi default link CocHighlightWrite      CocHighlightText
+  hi default link CocInlayHint           CocHintSign
+  " Notification
+  hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocNotificationButton  CocUnderline
+  hi default link CocNotificationError   CocErrorFloat
+  hi default link CocNotificationWarning CocWarningFloat
+  hi default link CocNotificationInfo    CocInfoFloat
+  " Snippet
+  hi default link CocSnippetVisual       Visual
   " Tree view highlights
-  hi default link CocTreeTitle Title
+  hi default link CocTreeTitle       Title
   hi default link CocTreeDescription Comment
-  hi default link CocTreeOpenClose CocBold
-  hi default link CocTreeSelected CursorLine
-  hi default link CocSelectedRange  CocHighlightText
+  hi default link CocTreeOpenClose   CocBold
+  hi default link CocTreeSelected    CursorLine
+  hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
-  hi default link CocSymbolDefault MoreMsg
-  hi default link CocSymbolFile Statement
-  hi default link CocSymbolModule Statement
-  hi default link CocSymbolNamespace Statement
-  hi default link CocSymbolPackage Statement
-  hi default link CocSymbolClass Statement
-  hi default link CocSymbolMethod Function
-  hi default link CocSymbolProperty Keyword
-  hi default link CocSymbolField CocSymbolDefault
-  hi default link CocSymbolConstructor Function
-  hi default link CocSymbolEnum CocSymbolDefault
-  hi default link CocSymbolInterface CocSymbolDefault
-  hi default link CocSymbolFunction Function
-  hi default link CocSymbolVariable CocSymbolDefault
-  hi default link CocSymbolConstant Constant
-  hi default link CocSymbolString String
-  hi default link CocSymbolNumber Number
-  hi default link CocSymbolBoolean Boolean
-  hi default link CocSymbolArray CocSymbolDefault
-  hi default link CocSymbolObject CocSymbolDefault
-  hi default link CocSymbolKey Keyword
-  hi default link CocSymbolNull Type
-  hi default link CocSymbolEnumMember CocSymbolDefault
-  hi default link CocSymbolStruct Keyword
-  hi default link CocSymbolEvent Keyword
-  hi default link CocSymbolOperator Operator
+  hi default link CocSymbolDefault       MoreMsg
+  hi default link CocSymbolFile          Statement
+  hi default link CocSymbolModule        Statement
+  hi default link CocSymbolNamespace     Statement
+  hi default link CocSymbolPackage       Statement
+  hi default link CocSymbolClass         Statement
+  hi default link CocSymbolMethod        Function
+  hi default link CocSymbolProperty      Keyword
+  hi default link CocSymbolField         CocSymbolDefault
+  hi default link CocSymbolConstructor   Function
+  hi default link CocSymbolEnum          CocSymbolDefault
+  hi default link CocSymbolInterface     CocSymbolDefault
+  hi default link CocSymbolFunction      Function
+  hi default link CocSymbolVariable      CocSymbolDefault
+  hi default link CocSymbolConstant      Constant
+  hi default link CocSymbolString        String
+  hi default link CocSymbolNumber        Number
+  hi default link CocSymbolBoolean       Boolean
+  hi default link CocSymbolArray         CocSymbolDefault
+  hi default link CocSymbolObject        CocSymbolDefault
+  hi default link CocSymbolKey           Keyword
+  hi default link CocSymbolNull          Type
+  hi default link CocSymbolEnumMember    CocSymbolDefault
+  hi default link CocSymbolStruct        Keyword
+  hi default link CocSymbolEvent         Keyword
+  hi default link CocSymbolOperator      Operator
   hi default link CocSymbolTypeParameter Operator
 
   if has('nvim')
@@ -435,29 +502,39 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  if get(g:, 'coc_default_semantic_highlight_groups', 0) == 1
-    hi default link CocSem_namespace Identifier
-    hi default link CocSem_type Type
-    hi default link CocSem_class Structure
-    hi default link CocSem_enum Type
-    hi default link CocSem_interface Type
-    hi default link CocSem_struct Structure
-    hi default link CocSem_typeParameter Type
-    hi default link CocSem_parameter Identifier
-    hi default link CocSem_variable Identifier
-    hi default link CocSem_property Identifier
-    hi default link CocSem_enumMember Constant
-    hi default link CocSem_event Identifier
-    hi default link CocSem_function Function
-    hi default link CocSem_method Function
-    hi default link CocSem_macro Macro
-    hi default link CocSem_keyword Keyword
-    hi default link CocSem_modifier StorageClass
-    hi default link CocSem_comment Comment
-    hi default link CocSem_string String
-    hi default link CocSem_number Number
-    hi default link CocSem_regexp Normal
-    hi default link CocSem_operator Operator
+  if get(g:, 'coc_default_semantic_highlight_groups', 1)
+    let hlMap = {
+        \ 'Namespace': ['TSNamespace', 'Include'],
+        \ 'Type': ['TSType', 'Type'],
+        \ 'Class': ['TSConstructor', 'Special'],
+        \ 'Enum': ['TSEnum', 'Type'],
+        \ 'Interface': ['TSInterface', 'Type'],
+        \ 'Struct': ['TSStruct', 'Identifier'],
+        \ 'TypeParameter': ['TSParameter', 'Identifier'],
+        \ 'Parameter': ['TSParameter', 'Identifier'],
+        \ 'Variable': ['TSSymbol', 'Identifier'],
+        \ 'Property': ['TSProperty', 'Identifier'],
+        \ 'EnumMember': ['TSEnumMember', 'Constant'],
+        \ 'Event': ['TSEvent', 'Keyword'],
+        \ 'Function': ['TSFunction', 'Function'],
+        \ 'Method': ['TSMethod', 'Function'],
+        \ 'Macro': ['TSConstMacro', 'Define'],
+        \ 'Keyword': ['TSKeyword', 'Keyword'],
+        \ 'Modifier': ['TSModifier', 'StorageClass'],
+        \ 'Comment': ['TSComment', 'Comment'],
+        \ 'String': ['TSString', 'String'],
+        \ 'Number': ['TSNumber', 'Number'],
+        \ 'Boolean': ['TSBoolean', 'Boolean'],
+        \ 'Regexp': ['TSStringRegex', 'String'],
+        \ 'Operator': ['TSOperator', 'Operator'],
+        \ 'Decorator': ['TSSymbol', 'Identifier'],
+        \ 'Deprecated': ['TSStrike', 'CocDeprecatedHighlight']
+        \ }
+    for [key, value] in items(hlMap)
+      let ts = get(value, 0, '')
+      let fallback = get(value, 1, '')
+      execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
+    endfor
   endif
 endfunction
 
@@ -526,8 +603,6 @@ command! -nargs=? -complete=custom,coc#list#names CocPrev         :call coc#rpc#
 command! -nargs=? -complete=custom,coc#list#names CocNext         :call coc#rpc#notify('listNext', [<f-args>])
 command! -nargs=? -complete=custom,coc#list#names CocFirst        :call coc#rpc#notify('listFirst', [<f-args>])
 command! -nargs=? -complete=custom,coc#list#names CocLast         :call coc#rpc#notify('listLast', [<f-args>])
-command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, <f-args>])
-command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, 'quickfix'])
 command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
