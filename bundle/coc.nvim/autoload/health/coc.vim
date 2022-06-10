@@ -80,7 +80,7 @@ function! s:checkAutocmd()
   endfor
 endfunction
 
-function! s:checkInitialize() abort
+function! s:checkInitailize() abort
   if coc#client#is_running('coc')
     call health#report_ok('Service started')
     return 1
@@ -95,6 +95,6 @@ endfunction
 function! health#coc#check() abort
     call s:checkEnvironment()
     call s:checkCommand()
-    call s:checkInitialize()
+    call s:checkInitailize()
     call s:checkAutocmd()
 endfunction

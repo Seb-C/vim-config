@@ -60,28 +60,10 @@ endfunction
 function! CocPopupCallback(bufnr, arglist) abort
   if len(a:arglist) == 2
     if a:arglist[0] == 'confirm'
-      call coc#rpc#notify('PromptInsert', [a:arglist[1], a:bufnr])
+      call coc#rpc#notify('PromptInsert', [a:arglist[1]])
     elseif a:arglist[0] == 'exit'
       execute 'silent! bd! '.a:bufnr
       "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])
-    elseif a:arglist[0] == 'change'
-      let text = a:arglist[1]
-      let current = getbufvar(a:bufnr, 'current', '')
-      if text !=# current
-        call setbufvar(a:bufnr, 'current', text)
-        let cursor = term_getcursor(a:bufnr)
-        let info = {
-              \ 'lnum': cursor[0],
-              \ 'col': cursor[1],
-              \ 'line': text,
-              \ 'changedtick': 0
-              \ }
-        call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
-      endif
-    elseif a:arglist[0] == 'send'
-      let key = a:arglist[1]
-      let escaped = strcharpart(key, 1, strchars(key) - 2)
-      call coc#rpc#notify('PromptKeyPress', [a:bufnr, escaped])
     endif
   endif
 endfunction
@@ -175,7 +157,7 @@ function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
     echohl MoreMsg
-    echom 'Config directory "'.home.'" does not exist, create? (y/n)'
+    echom 'Config directory "'.home.'" not exists, create? (y/n)'
     echohl None
     let confirm = nr2char(getchar())
     redraw!
@@ -285,16 +267,9 @@ function! s:HandleCompleteDone(complete_item) abort
   endif
   if get(g:, 'coc_disable_complete_done', 0)
     let g:coc_disable_complete_done = 0
-    let item['closed'] = v:true
+    return
   endif
   call s:Autocmd('CompleteDone', item)
-endfunction
-
-function! s:HandleWinScrolled(winid) abort
-  if getwinvar(a:winid, 'float', 0)
-    call coc#float#nvim_scrollbar(a:winid)
-  endif
-  call s:Autocmd('WinScrolled', a:winid)
 endfunction
 
 function! s:SyncAutocmd(...)
@@ -337,18 +312,12 @@ function! s:Enable(initialize)
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar(win_getid())
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
-    endif
-    if exists('##WinClosed')
-      autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
-      autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
-    elseif exists('##TabEnter')
-      autocmd TabEnter          * call coc#notify#reflow()
+      if exists('##WinClosed')
+        autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
+      endif
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
-    endif
-    if exists('##WinScrolled')
-      autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
     endif
     autocmd TabNew              * call s:Autocmd('TabNew', tabpagenr())
     autocmd TabClosed           * call s:Autocmd('TabClosed', +expand('<afile>'))
@@ -360,9 +329,9 @@ function! s:Enable(initialize)
     autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
-      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
+      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})
     endif
-    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), coc#util#change_info())
+    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
@@ -371,16 +340,15 @@ function! s:Enable(initialize)
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
-    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')], coc#util#suggest_variables(bufnr('%')))
+    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
-    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'), bufname(+expand('<abuf>')), getbufvar(+expand('<abuf>'), 'changedtick'))
+    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'), bufname(+expand('<abuf>')))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
-    autocmd VimLeavePre         * call s:Autocmd('VimLeavePre')
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Hi()
@@ -409,8 +377,7 @@ function! s:Hi() abort
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default CocDisabled      guifg=#999999   ctermfg=gray
-  hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default CocDisabled guifg=#999999 ctermfg=gray
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
@@ -430,16 +397,8 @@ function! s:Hi() abort
   hi default link CocHighlightText       CursorColumn
   hi default link CocHoverRange          Search
   hi default link CocCursorRange         Search
-  hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
-  hi default link CocInlayHint           CocHintSign
-  " Notification
-  hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default link CocNotificationButton  CocUnderline
-  hi default link CocNotificationError   CocErrorFloat
-  hi default link CocNotificationWarning CocWarningFloat
-  hi default link CocNotificationInfo    CocInfoFloat
   " Snippet
   hi default link CocSnippetVisual       Visual
   " Tree view highlights
@@ -603,6 +562,8 @@ command! -nargs=? -complete=custom,coc#list#names CocPrev         :call coc#rpc#
 command! -nargs=? -complete=custom,coc#list#names CocNext         :call coc#rpc#notify('listNext', [<f-args>])
 command! -nargs=? -complete=custom,coc#list#names CocFirst        :call coc#rpc#notify('listFirst', [<f-args>])
 command! -nargs=? -complete=custom,coc#list#names CocLast         :call coc#rpc#notify('listLast', [<f-args>])
+command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, <f-args>])
+command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, 'quickfix'])
 command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])

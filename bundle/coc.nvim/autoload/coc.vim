@@ -68,30 +68,19 @@ function! coc#_complete() abort
     " use <cmd> specific key to preselect item at once
     call feedkeys("\<Cmd>\<CR>" , 'i')
   else
-    if pumvisible()
-      let g:coc_disable_complete_done = 1
-    endif
     call complete(startcol, items)
   endif
   return ''
 endfunction
 
-function! coc#_do_complete(start, items, preselect, changedtick)
-  if b:changedtick != a:changedtick
-    return
-  endif
+function! coc#_do_complete(start, items, preselect)
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
   if mode() =~# 'i'
-    if s:is_vim
-      " when the completeopt has longest, the input would be removed sometimes when not use feedkeys!
-      call feedkeys("\<Plug>CocRefresh", 'i')
-    else
-      call coc#_complete()
-    endif
+    call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
 
@@ -132,6 +121,8 @@ function! coc#_cancel(...)
     endif
     if s:hide_pum
       call feedkeys("\<C-x>\<C-z>", 'in')
+    elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
+      call feedkeys("\<C-e>", 'in')
     else
       let g:coc_disable_space_report = 1
       call feedkeys("\<space>\<bs>", 'in')
@@ -169,7 +160,14 @@ function! coc#status()
   if !empty(info) && get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
-  return coc#compat#trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
+  return s:trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
+endfunction
+
+function! s:trim(str)
+  if exists('*trim')
+    return trim(a:str)
+  endif
+  return substitute(a:str, '\s\+$', '', '')
 endfunction
 
 function! coc#config(section, value)
@@ -203,6 +201,20 @@ function! s:GlobalChange(dict, key, val)
   call coc#rpc#notify('GlobalChange', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 
+function! coc#_map()
+  if !s:select_api | return | endif
+  for i in range(1, 9)
+    exe 'inoremap <buffer> '.i.' <Cmd>call nvim_select_popupmenu_item('.(i - 1).', v:true, v:true, {})<cr>'
+  endfor
+endfunction
+
+function! coc#_unmap()
+  if !s:select_api | return | endif
+  for i in range(1, 9)
+    exe 'silent! iunmap <buffer> '.i
+  endfor
+endfunction
+
 function! coc#on_notify(id, method, Cb)
   let key = a:id. '-'.a:method
   let s:callbacks[key] = a:Cb
@@ -218,26 +230,23 @@ function! coc#do_notify(id, method, result)
 endfunction
 
 function! coc#complete_indent() abort
-  if has('patch-8.2.3100')
-    return 0
-  endif
-  let curpos = getcurpos()
-  let indent_len = len(matchstr(getline('.'), '^\s*'))
-  let startofline = &startofline
-  let virtualedit = &virtualedit
+  let l:curpos = getcurpos()
+  let l:indent_pre = indent('.')
+
+  let l:startofline = &startofline
+  let l:virtualedit = &virtualedit
   set nostartofline
   set virtualedit=all
   normal! ==
-  let &startofline = startofline
-  let &virtualedit = virtualedit
-  let shift = len(matchstr(getline('.'), '^\s*')) - indent_len
-  let curpos[2] += shift
-  let curpos[4] += shift
-  call cursor(curpos[1:])
-  if shift != 0
-    if s:is_vim
-      doautocmd TextChangedP
-    endif
+  let &startofline = l:startofline
+  let &virtualedit = l:virtualedit
+
+  let l:shift = indent('.') - l:indent_pre
+  let l:curpos[2] += l:shift
+  let l:curpos[4] += l:shift
+  call cursor(l:curpos[1:])
+  if l:shift != 0
+    call coc#_cancel()
     return 1
   endif
   return 0
