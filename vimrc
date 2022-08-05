@@ -46,6 +46,7 @@ let g:acp_completeOption = &complete
 " Keybindings for coc.nvim
 nmap <silent> gd <Plug>(coc-type-definition)
 nmap <silent> gr <Plug>(coc-rename)
+inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Vim command-mode autocompletion
 set wildmenu

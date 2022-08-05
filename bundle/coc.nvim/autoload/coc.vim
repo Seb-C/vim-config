@@ -9,7 +9,6 @@ let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 let s:select_api = exists('*nvim_select_popupmenu_item')
-let s:complete_info_api = exists('*complete_info')
 let s:callbacks = {}
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
@@ -33,10 +32,6 @@ function! coc#add_command(id, cmd, ...)
   call coc#rpc#notify('addCommand', [config])
 endfunction
 
-function! coc#refresh() abort
-  return "\<c-r>=coc#start()\<CR>"
-endfunction
-
 function! coc#on_enter()
   call coc#rpc#notify('CocAutocmd', ['Enter', bufnr('%')])
   return ''
@@ -46,7 +41,6 @@ function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
     if pumvisible()
-      let g:coc_hide_pum = 1
       if s:hide_pum
         let prefix = "\<C-x>\<C-z>"
       else
@@ -68,86 +62,30 @@ function! coc#_complete() abort
     " use <cmd> specific key to preselect item at once
     call feedkeys("\<Cmd>\<CR>" , 'i')
   else
+    if pumvisible()
+      let g:coc_disable_complete_done = 1
+    endif
     call complete(startcol, items)
   endif
   return ''
 endfunction
 
-function! coc#_do_complete(start, items, preselect)
+function! coc#_do_complete(start, items, preselect, changedtick)
+  if b:changedtick != a:changedtick
+    return
+  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
   if mode() =~# 'i'
-    call feedkeys("\<Plug>CocRefresh", 'i')
-  endif
-endfunction
-
-function! coc#_select_confirm() abort
-  if !exists('*complete_info')
-    throw 'coc#_select_confirm requires complete_info function to work'
-  endif
-  let selected = complete_info()['selected']
-  if selected != -1
-    return "\<C-y>"
-  elseif pumvisible()
-    return "\<down>\<C-y>"
-  endif
-  return ''
-endfunction
-
-function! coc#_selected()
-  if !pumvisible() | return 0 | endif
-  return coc#rpc#request('hasSelected', [])
-endfunction
-
-" Deprecated
-function! coc#_hide() abort
-  if pumvisible()
-    call feedkeys("\<C-e>", 'in')
+    call coc#_complete()
   endif
 endfunction
 
 function! coc#_cancel(...)
-  " hack for close pum
-  " Use of <C-e> could cause bad insert when cursor just moved.
-  let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
-  if pumvisible()
-    let g:coc_hide_pum = 1
-    if get(a:, 1, 0)
-      " Avoid delayed CompleteDone cancel new completion
-      let g:coc_disable_complete_done = 1
-    endif
-    if s:hide_pum
-      call feedkeys("\<C-x>\<C-z>", 'in')
-    elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
-      call feedkeys("\<C-e>", 'in')
-    else
-      let g:coc_disable_space_report = 1
-      call feedkeys("\<space>\<bs>", 'in')
-    endif
-  endif
-  for winid in coc#float#get_float_win_list()
-    if getwinvar(winid, 'kind', '') ==# 'pum'
-      call coc#float#close(winid)
-    endif
-  endfor
-  let opt = get(a:, 2, '')
-  if !empty(opt)
-    execute 'noa set completeopt='.opt
-  endif
-endfunction
-
-function! coc#_select() abort
-  if !pumvisible() | return | endif
-  call feedkeys("\<C-y>", 'in')
-endfunction
-
-function! coc#start(...)
-  let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
-  return ''
+  call coc#pum#close()
 endfunction
 
 " used for statusline
@@ -160,14 +98,7 @@ function! coc#status()
   if !empty(info) && get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
-  return s:trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
-endfunction
-
-function! s:trim(str)
-  if exists('*trim')
-    return trim(a:str)
-  endif
-  return substitute(a:str, '\s\+$', '', '')
+  return coc#compat#trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
 endfunction
 
 function! coc#config(section, value)
@@ -201,20 +132,6 @@ function! s:GlobalChange(dict, key, val)
   call coc#rpc#notify('GlobalChange', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 
-function! coc#_map()
-  if !s:select_api | return | endif
-  for i in range(1, 9)
-    exe 'inoremap <buffer> '.i.' <Cmd>call nvim_select_popupmenu_item('.(i - 1).', v:true, v:true, {})<cr>'
-  endfor
-endfunction
-
-function! coc#_unmap()
-  if !s:select_api | return | endif
-  for i in range(1, 9)
-    exe 'silent! iunmap <buffer> '.i
-  endfor
-endfunction
-
 function! coc#on_notify(id, method, Cb)
   let key = a:id. '-'.a:method
   let s:callbacks[key] = a:Cb
@@ -229,25 +146,38 @@ function! coc#do_notify(id, method, result)
   endif
 endfunction
 
-function! coc#complete_indent() abort
-  let l:curpos = getcurpos()
-  let l:indent_pre = indent('.')
+function! coc#start(...)
+  let opt = coc#util#get_complete_option()
+  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
+  return ''
+endfunction
 
-  let l:startofline = &startofline
-  let l:virtualedit = &virtualedit
+function! coc#refresh() abort
+  return "\<c-r>=coc#start()\<CR>"
+endfunction
+
+function! coc#_select_confirm() abort
+  call timer_start(10, { -> coc#pum#select_confirm()})
+  return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>" 
+endfunction
+
+function! coc#complete_indent() abort
+  let curpos = getcurpos()
+  let indent_len = len(matchstr(getline('.'), '^\s*'))
+  let startofline = &startofline
+  let virtualedit = &virtualedit
   set nostartofline
   set virtualedit=all
   normal! ==
-  let &startofline = l:startofline
-  let &virtualedit = l:virtualedit
-
-  let l:shift = indent('.') - l:indent_pre
-  let l:curpos[2] += l:shift
-  let l:curpos[4] += l:shift
-  call cursor(l:curpos[1:])
-  if l:shift != 0
-    call coc#_cancel()
-    return 1
+  let &startofline = startofline
+  let &virtualedit = virtualedit
+  let shift = len(matchstr(getline('.'), '^\s*')) - indent_len
+  let curpos[2] += shift
+  let curpos[4] += shift
+  call cursor(curpos[1:])
+   if shift != 0
+    if s:is_vim
+      call timer_start(0, { -> execute('redraw')})
+    endif
   endif
-  return 0
 endfunction

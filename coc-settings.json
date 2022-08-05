@@ -1,4 +1,7 @@
 {
     "diagnostic.locationlist": false,
-    "typescript.showUnused": false
+    "typescript.showUnused": false,
+    "notification.disabledProgressSources": ["*"],
+    "suggest.enablePreselect": false,
+    "suggest.noselect": true
 }
