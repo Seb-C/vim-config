@@ -172,16 +172,6 @@ autocmd Filetype scss setlocal tabstop=2 shiftwidth=2 softtabstop=2
 " EditorConfig settings
 let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
-" Linters
-let g:syntastic_php_checkers = ['php']
-let g:syntastic_javascript_eslint_exe = '$(npm bin)/eslint'
-let g:syntastic_javascript_checkers = []
-let g:syntastic_typescript_checkers = ['tslint']
-let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
-let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_html_checkers=['']
-
 " Also clean search results when cleaning screen
 nnoremap <silent> <C-L> :noh<CR><C-L>
 
