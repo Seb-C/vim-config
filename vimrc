@@ -7,6 +7,8 @@ filetype plugin indent on
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
 
+let mapleader = "\\"
+
 " Disabling netrw
 let loaded_netrwPlugin = 1
 
@@ -44,8 +46,14 @@ let g:acp_completeoptPreview = 1
 let g:acp_completeOption = &complete
 
 " Keybindings for coc.nvim
-nmap <silent> gd <Plug>(coc-type-definition)
-nmap <silent> gr <Plug>(coc-rename)
+nmap <Leader>d <Plug>(coc-type-definition)
+nmap <Leader>i <Plug>(coc-implementation)
+nmap <Leader>c <Plug>(coc-references)
+nmap <Leader>r <Plug>(coc-rename)
+nmap <Leader>k <Plug>(coc-diagnostic-prev)
+nmap <Leader>j <Plug>(coc-diagnostic-next)
+nmap <Leader>f <Plug>(coc-fix-current)
+
 inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Vim command-mode autocompletion
@@ -149,6 +157,7 @@ set lazyredraw
 set clipboard=unnamed,unnamedplus
 
 set timeoutlen=200
+set notimeout ttimeout
 
 set t_Co=256
 set background=dark
