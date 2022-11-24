@@ -53,6 +53,7 @@ nmap <Leader>r <Plug>(coc-rename)
 nmap <Leader>k <Plug>(coc-diagnostic-prev)
 nmap <Leader>j <Plug>(coc-diagnostic-next)
 nmap <Leader>f <Plug>(coc-fix-current)
+nmap <Leader>l :CocDiagnostics<CR>
 
 inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
