@@ -16,3 +16,8 @@ Coc extensions to install:
 ```
 CocInstall coc-css coc-phpls coc-docker coc-eslint coc-git coc-go coc-html coc-json coc-sh coc-sql coc-xml coc-yaml coc-svg
 ```
+
+To have `golangci-lint` integration:
+```
+go install github.com/nametake/golangci-lint-langserver@latest
+```
