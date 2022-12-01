@@ -9,9 +9,6 @@ source ~/.vim/config/bad-habits.vim
 
 let mapleader = "\\"
 
-" Disabling netrw
-let loaded_netrwPlugin = 1
-
 " Tabularize custom configuration
 autocmd VimEnter * AddTabularPattern , /[^,]\+,
 cnoreabbrev Align Tabularize
