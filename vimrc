@@ -43,6 +43,7 @@ let g:acp_completeoptPreview = 1
 let g:acp_completeOption = &complete
 
 " Keybindings for coc.nvim
+nmap <Leader>t <Plug>(coc-type-definition)
 nmap <Leader>d <Plug>(coc-type-definition)
 nmap <Leader>i <Plug>(coc-implementation)
 nmap <Leader>c <Plug>(coc-references)
