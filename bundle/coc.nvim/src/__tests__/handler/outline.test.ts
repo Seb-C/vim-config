@@ -49,7 +49,7 @@ afterEach(async () => {
 async function getOutlineBuffer(): Promise<Buffer | undefined> {
   let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
   if (winid == -1) return undefined
-  let bufnr = await nvim.call('winbufnr', [winid])
+  let bufnr = await nvim.call('winbufnr', [winid]) as number
   if (bufnr == -1) return undefined
   return nvim.createBuffer(bufnr)
 }
@@ -65,6 +65,7 @@ describe('symbols outline', () => {
     await helper.edit()
     let buf = await nvim.buffer
     await nvim.command('setf javascript')
+    await buf.setOption('modifiable', true)
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
     let doc = await workspace.document
     await doc.synchronize()
@@ -73,14 +74,20 @@ describe('symbols outline', () => {
 
   describe('configuration', () => {
     it('should follow cursor', async () => {
-      await createBuffer()
-      let curr = await nvim.call('bufnr', ['%'])
+      await createBuffer(`  class myClass {
+  fun1() { }
+  fun2() {}
+}`)
+      let curr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
-      await events.fire('CursorHold', [curr])
+      await events.fire('CursorHold', [curr, [3, 1]])
       await helper.wait(50)
+      await nvim.call('cursor', [1, 1])
+      await events.fire('CursorHold', [curr, [1, 1]])
+      await helper.wait(30)
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.getLines()
       expect(lines.slice(1)).toEqual([
@@ -95,16 +102,16 @@ describe('symbols outline', () => {
         priority: 10,
         group: 'CocTree'
       })
+      await nvim.command(`bd ${bufnr}`)
+      await events.fire('CursorHold', [curr, [3, 1]])
     })
 
     it('should not follow cursor', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.followCursor': false,
-      })
+      helper.updateConfiguration('outline.followCursor', false,)
       await createBuffer()
-      let curr = await nvim.call('bufnr', ['%'])
+      let curr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
       await events.fire('CursorHold', [curr])
@@ -115,9 +122,7 @@ describe('symbols outline', () => {
     })
 
     it('should keep current window', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.keepWindow': true,
-      })
+      helper.updateConfiguration('outline.keepWindow', true)
       await createBuffer()
       let curr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline()
@@ -126,23 +131,27 @@ describe('symbols outline', () => {
     })
 
     it('should check on buffer switch', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.checkBufferSwitch': true,
-      })
-      await createBuffer()
+      helper.updateConfiguration('outline.checkBufferSwitch', true)
+      let b = await createBuffer()
       await symbols.showOutline(1)
-      await helper.edit('unnamed')
-      await helper.wait(200)
       let buf = await getOutlineBuffer()
+      let bufnr = buf.id
+      await helper.edit('unnamed')
+      await helper.waitValue(async () => {
+        let buf = await getOutlineBuffer()
+        return buf.id > bufnr
+      }, true)
+      buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines[0]).toMatch('Document symbol provider not found')
+      await nvim.command(`bd! ${b.id}`)
+      await helper.wait(10)
+      let loaded = await buf.loaded
+      expect(loaded).toBe(true)
     })
 
     it('should not check on buffer switch', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.checkBufferSwitch': false
-      })
-      await helper.wait(30)
+      helper.updateConfiguration('outline.checkBufferSwitch', false)
       await createBuffer()
       await symbols.showOutline(1)
       await helper.edit('unnamed')
@@ -155,15 +164,27 @@ describe('symbols outline', () => {
     })
 
     it('should not check on buffer reload', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.checkBufferSwitch': false
-      })
+      helper.updateConfiguration('outline.checkBufferSwitch', false)
       await symbols.showOutline(1)
-      await helper.wait(50)
       await createBuffer()
       await helper.wait(50)
       let buf = await getOutlineBuffer()
       expect(buf).toBeDefined()
+    })
+
+    it('should sort by category', async () => {
+      let code = `
+class myClass {
+}
+fun1() {}
+`
+      await createBuffer(code)
+      await symbols.showOutline(1)
+      let buf = await getOutlineBuffer()
+      let lines = await buf.lines
+      expect(lines).toEqual([
+        'OUTLINE Category', '  c myClass 2', '  m fun1 4'
+      ])
     })
 
     it('should sort by position', async () => {
@@ -171,9 +192,7 @@ describe('symbols outline', () => {
   fun2() { }
   fun1() {}
 }`
-      workspace.configurations.updateUserConfig({
-        'outline.sortBy': 'position',
-      })
+      helper.updateConfiguration('outline.sortBy', 'position',)
       await createBuffer(code)
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
@@ -188,9 +207,7 @@ describe('symbols outline', () => {
   fun2() {}
   fun1() {}
 }`
-      workspace.configurations.updateUserConfig({
-        'outline.sortBy': 'name',
-      })
+      helper.updateConfiguration('outline.sortBy', 'name')
       await createBuffer(code)
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
@@ -201,9 +218,7 @@ describe('symbols outline', () => {
     })
 
     it('should change sort method', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.detailAsDescription': false
-      })
+      helper.updateConfiguration('outline.detailAsDescription', false)
       let code = `class detail {
   fun2() {}
   fun1() {}
@@ -212,19 +227,17 @@ describe('symbols outline', () => {
       await symbols.showOutline(0)
       await helper.wait(30)
       await nvim.input('<C-s>')
-      await helper.waitFloat()
+      await helper.waitPrompt()
       await nvim.input('<esc>')
       await helper.wait(30)
       await nvim.input('<C-s>')
-      await helper.waitFloat()
+      await helper.waitPrompt()
       await nvim.input('3')
       await helper.waitFor('getline', [1], 'OUTLINE Position')
     })
 
     it('should show detail as description', async () => {
-      workspace.configurations.updateUserConfig({
-        'outline.detailAsDescription': true
-      })
+      helper.updateConfiguration('outline.detailAsDescription', true)
       let code = `class detail {
   fun2() {}
 }`
@@ -235,6 +248,18 @@ describe('symbols outline', () => {
       expect(lines.slice(1)).toEqual([
         '- c detail 1', '    m fun2 () 2'
       ])
+    })
+
+    it('should not showLineNumber', async () => {
+      helper.updateConfiguration('outline.showLineNumber', false)
+      let code = `class detail {
+  fun2() {}
+}`
+      await createBuffer(code)
+      await symbols.showOutline(1)
+      let buf = await getOutlineBuffer()
+      let lines = await buf.lines
+      expect(lines.slice(1)).toEqual(['- c detail', '    m fun2 ()'])
     })
   })
 
@@ -255,28 +280,29 @@ describe('symbols outline', () => {
       await symbols.showOutline(0)
       await nvim.command('tabe')
       await nvim.command(`bd! ${curr}`)
-      await helper.wait(30)
-      let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      await helper.waitValue(async () => {
+        let buf = await getOutlineBuffer()
+        return buf == null
+      }, true)
     })
 
     it('should check current window on BufEnter', async () => {
       await createBuffer()
       await symbols.showOutline(1)
-      let winid = await nvim.call('win_getid', [])
       await nvim.command('enew')
-      await helper.wait(100)
-      let win = await nvim.window
-      expect(win.id).toBe(winid)
+      await helper.wait(50)
     })
 
     it('should recreated when original window exists', async () => {
+      let win = await nvim.window
       await symbols.showOutline(1)
       await helper.wait(50)
+      await nvim.setWindow(win)
       await createBuffer()
-      await helper.wait(50)
-      let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      await helper.waitValue(async () => {
+        let buf = await getOutlineBuffer()
+        return buf != null
+      }, true)
     })
 
     it('should keep old outline when new buffer not attached', async () => {
@@ -310,6 +336,8 @@ describe('symbols outline', () => {
       await nvim.command(`edit +setl\\ buftype=nofile t`)
       await workspace.document
       await symbols.showOutline(1)
+      let line = await helper.getCmdline()
+      expect(line).toMatch('Unable to show outline')
     })
 
     it('should not throw when provider does not exist', async () => {
@@ -332,9 +360,9 @@ describe('symbols outline', () => {
       await helper.waitFor('getline', [3], '    m fun1 2')
       await nvim.command('exe 3')
       await nvim.input('<cr>')
-      await helper.wait(50)
-      let curr = await nvim.call('bufnr', ['%'])
-      expect(curr).toBe(bufnr)
+      await helper.waitValue(async () => {
+        return await nvim.call('bufnr', ['%'])
+      }, bufnr)
       let cursor = await nvim.call('coc#cursor#position')
       expect(cursor).toEqual([1, 2])
     })
@@ -342,9 +370,9 @@ describe('symbols outline', () => {
     it('should update symbols', async () => {
       await createBuffer()
       let doc = await workspace.document
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(1)
-      await helper.wait(10)
+      await helper.waitFor('getline', [1], 'class myClass {')
       let buf = nvim.createBuffer(bufnr)
       let code = 'class foo{}'
       await buf.setLines(code.split('\n'), {
@@ -389,6 +417,68 @@ describe('symbols outline', () => {
     })
   })
 
+  describe('autoPreview', () => {
+    it('should toggle auto preview by press p', async () => {
+      await createBuffer()
+      await symbols.showOutline(0)
+      await helper.waitFor('getline', [3], /fun1/)
+      await nvim.command('exe 2')
+      await nvim.input('p')
+      let winid = await helper.waitFloat()
+      expect(winid).toBeGreaterThan(1000)
+      await nvim.input('p')
+      await helper.waitValue(async () => {
+        let win = nvim.createWindow(winid)
+        let valid = await win.valid
+        return valid === false
+      }, true)
+    })
+
+    it('should close preview when move to line without node', async () => {
+      await createBuffer()
+      await symbols.showOutline(0)
+      await helper.waitFor('getline', [3], /fun1/)
+      await nvim.command('exe 2')
+      await nvim.input('p')
+      let winid = await helper.waitFloat()
+      await nvim.input('l')
+      await nvim.input('k')
+      await helper.waitValue(async () => {
+        let win = nvim.createWindow(winid)
+        let valid = await win.valid
+        return valid === false
+      }, true)
+    })
+
+    it('should show preview when move cursor back', async () => {
+      await createBuffer()
+      await symbols.showOutline(0)
+      await helper.waitFor('getline', [3], /fun1/)
+      await nvim.command('exe 2')
+      await nvim.input('p')
+      let winid = await helper.waitFloat()
+      await nvim.command('wincmd p')
+      await helper.waitValue(async () => {
+        let win = nvim.createWindow(winid)
+        let valid = await win.valid
+        return valid === false
+      }, true)
+      await nvim.command('wincmd p')
+      winid = await helper.waitFloat()
+      expect(winid).toBeGreaterThan(1000)
+    })
+
+    it('should enable auto preview by configuration', async () => {
+      helper.updateConfiguration('outline.autoPreview', true)
+      await createBuffer()
+      await symbols.showOutline(0)
+      await helper.waitFor('getline', [3], /fun1/)
+      await nvim.command('exe 2')
+      let winid = await helper.waitFloat()
+      expect(winid).toBeGreaterThan(1000)
+    })
+  })
+
   describe('actions', () => {
     it('should invoke visual select', async () => {
       await createBuffer()
@@ -397,7 +487,7 @@ describe('symbols outline', () => {
       await helper.waitFor('getline', [3], /fun1/)
       await nvim.command('exe 3')
       await nvim.input('<tab>')
-      await helper.waitFloat()
+      await helper.waitPrompt()
       await nvim.input('<cr>')
       await helper.waitFor('mode', [], 'v')
       let buf = await nvim.buffer
@@ -419,7 +509,7 @@ describe('symbols outline', () => {
         }
       }, undefined))
       await createBuffer()
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let doc = workspace.getDocument(bufnr)
       uri = doc.uri
       await symbols.showOutline(0)
@@ -438,9 +528,9 @@ describe('symbols outline', () => {
   describe('hide()', () => {
     it('should hide outline', async () => {
       await createBuffer('')
-      await symbols.showOutline(1)
-      await helper.wait(50)
-      await symbols.hideOutline()
+      await helper.doAction('showOutline', 1)
+      await helper.wait(10)
+      await helper.doAction('hideOutline')
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()
     })
@@ -455,11 +545,12 @@ describe('symbols outline', () => {
   describe('dispose', () => {
     it('should dispose provider and views', async () => {
       await createBuffer('')
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(1)
       symbols.dispose()
-      await helper.wait(50)
-      expect(symbols.hasOutline(bufnr)).toBe(false)
+      await helper.waitValue(() => {
+        return symbols.hasOutline(bufnr)
+      }, false)
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()
     })

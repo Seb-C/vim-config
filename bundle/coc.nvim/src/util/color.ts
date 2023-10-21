@@ -1,5 +1,5 @@
 'use strict'
-import { Color } from 'vscode-languageserver-protocol'
+import { Color } from 'vscode-languageserver-types'
 
 function pad(str: string): string {
   return str.length == 1 ? `0${str}` : str
@@ -10,7 +10,7 @@ export function toHexString(color: Color): string {
   return `${pad(c.red.toString(16))}${pad(c.green.toString(16))}${pad(c.blue.toString(16))}`
 }
 
-export function toHexColor(color: Color): { red: number; green: number; blue: number } {
+function toHexColor(color: Color): { red: number; green: number; blue: number } {
   let { red, green, blue } = color
   return {
     red: Math.round(red * 255),

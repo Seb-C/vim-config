@@ -1,22 +1,20 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import events from '../../events'
-import Document from '../../model/document'
+import Document, { getNotAttachReason, getUri } from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
-import { disposeAll } from '../../util'
+import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
 
-function createTextDocument(lines: string[]): LinesTextDocument {
-  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
+function createTextDocument(lines: string[], eol = true): LinesTextDocument {
+  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, eol)
 }
 
 async function setLines(doc: Document, lines: string[]): Promise<void> {
@@ -25,7 +23,7 @@ async function setLines(doc: Document, lines: string[]): Promise<void> {
 }
 
 describe('LinesTextDocument', () => {
-  it('should apply edits', async () => {
+  it('should apply edits', () => {
     let textDocument = new LinesTextDocument('', '', 1, [
       'use std::io::Result;'
     ], 1, true)
@@ -43,20 +41,58 @@ describe('LinesTextDocument', () => {
     expect(res).toEqual(['use std::io::{Result, Error};'])
   })
 
-  it('should get length', async () => {
+  it('should throw for overlapping edits', () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'use std::io::Result;'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 1 }, end: { line: 0, character: 3 } }, newText: "foo" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 5 } }, newText: "new" }
+    ]
+    expect(() => {
+      applyEdits(textDocument, edits)
+    }).toThrow()
+  })
+
+  it('should return undefined when not changed', () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'foo bar'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } }, newText: "f" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 3 } }, newText: "o" }
+    ]
+    let res = applyEdits(textDocument, edits)
+    expect(res).toBeUndefined()
+  })
+
+  it('should get length', () => {
     let doc = createTextDocument(['foo'])
     expect(doc.length).toBe(4)
     expect(doc.getText().length).toBe(4)
     expect(doc.length).toBe(4)
+    doc = createTextDocument(['foo'], false)
+    expect(doc.length).toBe(3)
   })
 
-  it('should getText by range', async () => {
+  it('should getText by range', () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.getText(Range.create(0, 0, 0, 1))).toBe('f')
     expect(doc.getText(Range.create(0, 0, 1, 0))).toBe('foo\n')
   })
 
-  it('should work when eol enabled', async () => {
+  it('should get positionAt', () => {
+    let doc = createTextDocument([], false)
+    expect(doc.positionAt(0)).toEqual(Position.create(0, 0))
+  })
+
+  it('should get offsetAt', () => {
+    let doc = createTextDocument([''], false)
+    expect(doc.offsetAt(Position.create(1, 0))).toBe(0)
+    expect(doc.offsetAt({ line: -1, character: -1 })).toBe(0)
+  })
+
+  it('should work when eol enabled', () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.lineCount).toBe(3)
     let content = doc.getText()
@@ -78,7 +114,7 @@ describe('LinesTextDocument', () => {
     expect(doc.end).toEqual(Position.create(2, 0))
   })
 
-  it('should throw for invalid line', async () => {
+  it('should throw for invalid line', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let fn = () => {
       doc.lineAt(-1)
@@ -90,23 +126,28 @@ describe('LinesTextDocument', () => {
     expect(fn).toThrow(Error)
   })
 
-  it('should work when eol disabled', async () => {
+  it('should work when eol disabled', () => {
     let doc = new LinesTextDocument('file://a', 'txt', 1, ['foo'], 1, false)
     expect(doc.getText()).toBe('foo')
     expect(doc.lineCount).toBe(1)
     expect(doc.end).toEqual(Position.create(0, 3))
   })
-})
 
-describe('computeLinesOffsets()', () => {
-  it('should computeLinesOffsets', async () => {
+  it('should computeLinesOffsets', () => {
     expect(computeLinesOffsets(['foo'], true)).toEqual([0, 4])
     expect(computeLinesOffsets(['foo'], false)).toEqual([0])
   })
-})
 
-describe('TextLine', () => {
-  it('should work with line not last one', async () => {
+  it('should get uri for unknown buftype', () => {
+    let res = getUri('foo', 3, '', false)
+    expect(res).toBe('unknown:3')
+    res = getUri('foo', 3, 'terminal', false)
+    expect(res).toEqual('terminal:3')
+    res = getUri(__filename, 3, 'terminal', true)
+    expect(URI.parse(res).fsPath).toBe(__filename)
+  })
+
+  it('should work with line not last one', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(0)
     expect(textLine.lineNumber).toBe(0)
@@ -116,11 +157,15 @@ describe('TextLine', () => {
     expect(textLine.isEmptyOrWhitespace).toBe(false)
   })
 
-  it('should work with last line', async () => {
+  it('should work with last line', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(2)
-    let r = textLine.rangeIncludingLineBreak
     expect(textLine.rangeIncludingLineBreak).toEqual(Range.create(2, 0, 2, 0))
+  })
+
+  it('should not attach when size exceeded', async () => {
+    let reason = getNotAttachReason('', 1, 99)
+    expect(reason).toMatch('exceed')
   })
 })
 
@@ -139,15 +184,29 @@ describe('Document', () => {
   })
 
   describe('properties', () => {
+    it('should get languageId', async () => {
+      await nvim.command(`edit +setl\\ filetype=txt.vim foo`)
+      let doc = await workspace.document
+      expect(doc.languageId).toBe('txt')
+    })
+
     it('should parse iskeyword of character range', async () => {
       await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
       let opt = await nvim.getOption('iskeyword')
       expect(opt).toBe('a-z,A-Z,48-57,_')
     })
 
+    it('should get start word', async () => {
+      let doc = await workspace.document
+      expect(doc.getStartWord('abc def')).toBe('abc')
+      expect(doc.getStartWord('x')).toBe('x')
+      expect(doc.getStartWord(' ')).toBe('')
+      expect(doc.getStartWord('')).toBe('')
+    })
+
     it('should get word range', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo bar')
+      await nvim.setLine('foo bar#')
       await doc.synchronize()
       let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
       expect(range).toEqual(Range.create(0, 0, 0, 3))
@@ -157,6 +216,27 @@ describe('Document', () => {
       expect(range).toEqual(Range.create(0, 4, 0, 7))
       range = doc.getWordRangeAtPosition({ line: 0, character: 7 })
       expect(range).toBeNull()
+      range = doc.getWordRangeAtPosition({ line: 0, character: 7 }, '#')
+      expect(range).toEqual(Range.create(0, 4, 0, 8))
+    })
+
+    it('should fix start col', async () => {
+      let doc = await workspace.document
+      expect(doc.fixStartcol(Position.create(0, 3), ['#'])).toBe(0)
+      await nvim.setLine('foo #def')
+      expect(doc.fixStartcol(Position.create(0, 6), ['#'])).toBe(4)
+    })
+
+    it('should get lines', async () => {
+      let doc = await workspace.document
+      let lines = doc.getLines()
+      expect(lines).toEqual([''])
+    })
+
+    it('should add additional keywords', async () => {
+      await nvim.command(`edit foo | let b:coc_additional_keywords=['#']`)
+      let doc = await workspace.document
+      expect(doc.isWord('#')).toBe(true)
     })
 
     it('should check has changed', async () => {
@@ -170,43 +250,9 @@ describe('Document', () => {
 
     it('should get symbol ranges', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo bar foo')
+      await nvim.setLine('-foo bar foo')
       let ranges = doc.getSymbolRanges('foo')
       expect(ranges.length).toBe(2)
-    })
-
-    it('should get localify bonus', async () => {
-      let assertBonus = async (lines: string[], position: Position, words: string[], limit?: number) => {
-        let doc = await helper.createDocument()
-        await doc.buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false })
-        await doc.patchChange()
-        let res = doc.getLocalifyBonus(position, position, limit)
-        for (let word of words) {
-          expect(res.has(word)).toBe(true)
-        }
-      }
-      await assertBonus(
-        ['context content clearTimeout', '', 'product confirm'],
-        Position.create(1, 0),
-        ['confirm', 'clearTimeout']
-      )
-      await assertBonus(
-        ['context content clearTimeout', '', 'product confirm', 'word', 'workspace', 'words'],
-        Position.create(2, 1),
-        ['confirm'],
-        50
-      )
-      await assertBonus(
-        ['context content clearTimeout', '', 'product confirm', 'word', 'workspace', 'words'],
-        Position.create(2, 1),
-        ['confirm'],
-        30
-      )
-      await assertBonus(
-        ['context content clearTimeout', '', 'product confirm'],
-        Position.create(0, 7),
-        ['confirm', 'clearTimeout']
-      )
     })
 
     it('should get current line', async () => {
@@ -228,7 +274,7 @@ describe('Document', () => {
     it('should attach change events', async () => {
       let doc = await workspace.document
       await nvim.setLine('abc')
-      await doc.synchronize()
+      await doc.patchChange()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(0)
     })
@@ -239,17 +285,30 @@ describe('Document', () => {
       let val = doc.getVar<number>('enabled', 0)
       expect(val).toBe(0)
       await nvim.setLine('abc')
-      await doc.synchronize()
+      await doc.patchChange()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(-1)
+      expect(doc.notAttachReason).toMatch('coc_enabled')
+    })
+
+    it('should attach nofile document by b:coc_force_attach', async () => {
+      nvim.command(`e +setl\\ buftype=nofile foo| let b:coc_force_attach = 1`, true)
+      let doc = await workspace.document
+      expect(doc.buftype).toBe('nofile')
+      expect(doc.attached).toBe(true)
+    })
+
+    it('should not attach nofile buffer', async () => {
+      nvim.command('edit t|setl buftype=nofile', true)
+      let doc = await workspace.document
+      expect(doc.notAttachReason).toMatch('nofile')
     })
 
     it('should get lineCount, previewwindow, winid', async () => {
       let doc = await workspace.document
-      let { lineCount, winid, previewwindow } = doc
+      let { lineCount, winid } = doc
       expect(lineCount).toBe(1)
       expect(winid != -1).toBe(true)
-      expect(previewwindow).toBe(false)
     })
 
     it('should set filetype', async () => {
@@ -267,7 +326,45 @@ describe('Document', () => {
     })
   })
 
+  describe('attach()', () => {
+    it('should not attach when buffer not loaded', async () => {
+      await nvim.command('tabe foo | doautocmd CursorHold')
+      let doc = await workspace.document
+      let spy = jest.spyOn(doc.buffer, 'attach').mockImplementation(() => {
+        return Promise.reject(new Error('detached'))
+      })
+      doc.attach()
+      spy.mockRestore()
+      await nvim.command(`bd ${doc.bufnr}`)
+      doc.attach()
+      await helper.wait(10)
+      expect(doc.attached).toBe(false)
+      await doc.synchronize()
+    })
+
+    it('should consider eol option', async () => {
+      await nvim.command('edit foo|setl noeol')
+      await nvim.setLine('foo')
+      let doc = await workspace.document
+      expect(typeof doc.hasChanged).toBe('boolean')
+      await doc.patchChange()
+      await helper.waitValue(() => doc.content, 'foo')
+    })
+  })
+
   describe('applyEdits()', () => {
+    it('should not throw with old API', async () => {
+      let doc = await workspace.document
+      await doc.applyEdits(nvim as any, [] as any)
+      expect(doc.previewwindow).toBe(false)
+    })
+
+    it('should not apply when not change happens', async () => {
+      let doc = await workspace.document
+      let res = await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '')])
+      expect(res).toBeUndefined()
+    })
+
     it('should simple applyEdits', async () => {
       let doc = await workspace.document
       let edits: TextEdit[] = []
@@ -443,6 +540,25 @@ describe('Document', () => {
     })
   })
 
+  describe('changeLines()', () => {
+    it('should change lines', async () => {
+      let doc = await workspace.document
+      await doc.changeLines([[0, '']])
+      await doc.buffer.replace(['a', 'b', 'c'], 0)
+      await doc.changeLines([[0, 'd'], [2, 'f']])
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['d', 'b', 'f'])
+    })
+  })
+
+  describe('getOffset()', () => {
+    it('should get offset', async () => {
+      let doc = await workspace.document
+      let offset = doc.getOffset(1, 0)
+      expect(offset).toBe(0)
+    })
+  })
+
   describe('synchronize', () => {
     it('should synchronize on lines change', async () => {
       let document = await workspace.document
@@ -547,40 +663,6 @@ describe('Document', () => {
     })
   })
 
-  describe('getEndOffset', () => {
-    it('should getEndOffset #1', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(2)
-      end = doc.getEndOffset(2, 1, false)
-      expect(end).toBe(1)
-    })
-
-    it('should getEndOffset #2', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['a', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(2)
-    })
-
-    it('should getEndOffset #3', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['a'])
-      let end = doc.getEndOffset(1, 2, false)
-      expect(end).toBe(1)
-    })
-
-    it('should getEndOffset #4', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['你好', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(3)
-      end = doc.getEndOffset(1, 1, true)
-      expect(end).toBe(4)
-    })
-  })
-
   describe('applyEdits', () => {
     it('should synchronize content added', async () => {
       let doc = await workspace.document
@@ -618,12 +700,12 @@ describe('Document', () => {
       nvim.pauseNotification()
       buf.highlightRanges('highlight', 'Search', ranges)
       await nvim.resumeNotification()
-      let markers = await helper.getMarkers(buf.id, ns)
+      let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(2)
       nvim.pauseNotification()
       buf.clearNamespace('highlight')
       await nvim.resumeNotification()
-      markers = await helper.getMarkers(buf.id, ns)
+      markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
     })
 
@@ -637,7 +719,7 @@ describe('Document', () => {
       ]
       let res = await win.highlightRanges('Search', ranges)
       expect(res.length).toBe(2)
-      let matches = await nvim.call('getmatches', [win.id])
+      let matches = await nvim.call('getmatches', [win.id]) as any
       expect(matches.length).toBe(2)
       nvim.pauseNotification()
       win.clearMatchGroup('Search')
@@ -658,56 +740,8 @@ describe('Document', () => {
       nvim.pauseNotification()
       win.clearMatches(ids)
       await nvim.resumeNotification()
-      let matches = await nvim.call('getmatches', [win.id])
+      let matches = await nvim.call('getmatches', [win.id]) as any
       expect(matches.length).toBe(0)
-    })
-  })
-
-  describe('onTextChange', () => {
-    async function createVimDocument(): Promise<Document> {
-      let doc = await workspace.document
-      doc.detach()
-      let opts = await nvim.call('coc#util#get_bufoptions', doc.bufnr)
-      let buf = nvim.createBuffer(doc.bufnr)
-      let env = Object.assign({ isVim: true }, workspace.env)
-      return new Document(buf, env, nvim, opts)
-    }
-
-    it('should fetch lines on TextChanged', async () => {
-      let doc = await createVimDocument()
-      expect(doc.attached).toBe(true)
-      let disposable = events.on('TextChanged', (bufnr: number) => {
-        if (bufnr == doc.bufnr) doc.onTextChange('TextChanged')
-      })
-      let p = new Promise<void>(resolve => {
-        doc.onDocumentChange(() => {
-          resolve()
-        })
-      })
-      await nvim.setLine('foo')
-      await p
-      disposable.dispose()
-      let line = doc.getline(0)
-      expect(line).toBe('foo')
-    })
-
-    it('should update on insert change', async () => {
-
-      let doc = await createVimDocument()
-      workspace.documentsManager.buffers.set(doc.bufnr, doc)
-      await nvim.setLine('foo foot')
-      await doc.synchronize()
-      let disposables: Disposable[] = []
-        ;['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
-          events.on(event as any, (bufnr: number, info) => {
-            if (bufnr === doc.bufnr) doc.onTextChange(event, info)
-          }, null, disposables)
-        })
-      await nvim.input('of')
-      await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
-      await helper.waitFor('pumvisible', [], 1)
-      let line = doc.getline(1)
-      expect(line).toBe('f')
     })
   })
 })

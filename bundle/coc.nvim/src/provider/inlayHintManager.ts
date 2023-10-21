@@ -1,12 +1,13 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { InlayHint } from '../inlayHint'
+import { InlayHint, Position, Range } from 'vscode-languageserver-types'
+import { createLogger } from '../logger'
 import { comparePosition, positionInRange } from '../util/position'
-import { InlayHintsProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-const logger = require('../util/logger')('inlayHintManger')
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentSelector, InlayHintsProvider } from './index'
+import Manager from './manager'
+const logger = createLogger('inlayHintManger')
 
 export interface InlayHintWithProvider extends InlayHint {
   providerId: string
@@ -16,14 +17,10 @@ export interface InlayHintWithProvider extends InlayHint {
 export default class InlayHintManger extends Manager<InlayHintsProvider> {
 
   public register(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
-    let item: ProviderItem<InlayHintsProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 
@@ -38,27 +35,20 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
     token: CancellationToken
   ): Promise<InlayHintWithProvider[] | null> {
     let items = this.getProviders(document)
-    if (items.length === 0) return null
-    let results: InlayHintWithProvider[] = []
-    let finished = 0
+    let inlayHints: InlayHintWithProvider[] = []
     await Promise.all(items.map(item => {
       let { id, provider } = item
       return Promise.resolve(provider.provideInlayHints(document, range, token)).then(hints => {
-        if (token.isCancellationRequested) return
+        if (!Array.isArray(hints) || token.isCancellationRequested) return
+        let noCheck = inlayHints.length == 0
         for (let hint of hints) {
           if (!isValidInlayHint(hint, range)) continue
-          if (finished > 0 && results.findIndex(o => sameHint(o, hint)) != -1) continue
-          results.push({
-            providerId: id,
-            ...hint
-          })
+          if (!noCheck && inlayHints.findIndex(o => sameHint(o, hint)) != -1) continue
+          inlayHints.push({ providerId: id, ...hint })
         }
-        finished += 1
-      }, e => {
-        logger.error(`Error on provideInlayHints`, e)
       })
     }))
-    return results
+    return inlayHints
   }
 
   public async resolveInlayHint(hint: InlayHintWithProvider, token: CancellationToken): Promise<InlayHintWithProvider> {
@@ -75,12 +65,18 @@ export function sameHint(one: InlayHint, other: InlayHint): boolean {
   return getLabel(one) === getLabel(other)
 }
 
+export function isInlayHint(obj: any): obj is InlayHint {
+  if (!obj || !Position.is(obj.position) || obj.label == null) return false
+  if (typeof obj.label !== 'string') return Array.isArray(obj.label) && obj.label.every(p => typeof p.value === 'string')
+  return true
+}
+
 export function isValidInlayHint(hint: InlayHint, range: Range): boolean {
   if (hint.label.length === 0 || (Array.isArray(hint.label) && hint.label.every(part => part.value.length === 0))) {
     logger.warn('INVALID inlay hint, empty label', hint)
     return false
   }
-  if (!InlayHint.is(hint)) {
+  if (!isInlayHint(hint)) {
     logger.warn('INVALID inlay hint', hint)
     return false
   }
@@ -93,5 +89,5 @@ export function isValidInlayHint(hint: InlayHint, range: Range): boolean {
 
 export function getLabel(hint: InlayHint): string {
   if (typeof hint.label === 'string') return hint.label
-  return hint.label.map(o => o.value).join(' ')
+  return hint.label.map(o => o.value).join('')
 }

@@ -1,13 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs'
 import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import RefactorBuffer, { FileItemDef, fixChangeParams } from '../../handler/refactor/buffer'
 import Changes from '../../handler/refactor/changes'
 import Refactor from '../../handler/refactor/index'
 import languages from '../../languages'
 import { DidChangeTextDocumentParams } from '../../types'
+import { Disposable } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -117,7 +118,7 @@ describe('refactor', () => {
     it('should find file range', async () => {
       let uri = URI.file(__filename).toString()
       let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
-      let buf = await refactor.fromLocations(locations)
+      let buf = await commands.executeCommand<any>('editor.action.showRefactor', locations)
       let res = buf.getFileRange(4)
       expect(res).toBeDefined()
     })
@@ -249,7 +250,7 @@ describe('refactor', () => {
       await nvim.call('setline', [4, line])
       doc._forceSync()
       let srcId = await nvim.createNamespace('coc-refactor')
-      let markers = await helper.getMarkers(doc.bufnr, srcId)
+      let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
       expect(markers.length).toBe(2)
     })
 
@@ -322,7 +323,7 @@ describe('refactor', () => {
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await nvim.call('getline', [1, '$']) as string[]
       expect(lines.length).toBe(3)
       let items = buf.fileItems
       expect(items.length).toBe(0)
@@ -336,7 +337,7 @@ describe('refactor', () => {
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines(['def', 'def'], { start: 5, end: 6, strictIndexing: false })
       await doc.synchronize()
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await nvim.call('getline', [1, '$']) as string[]
       expect(lines[lines.length - 2]).toBe('def')
       await assertSynchronized(buf)
     })
@@ -396,7 +397,7 @@ bar
 
   describe('createRefactorBuffer()', () => {
     it('should create refactor buffer', async () => {
-      let winid = await nvim.call('win_getid')
+      let winid = await nvim.call('win_getid') as number
       let buf = await refactor.createRefactorBuffer()
       let curr = await nvim.call('win_getid')
       expect(curr).toBeGreaterThan(winid)
@@ -478,14 +479,14 @@ bar
     it('should do nothing when cancelled or range not found', async () => {
       let buf = await setup()
       let p = buf.showMenu()
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('<esc>')
       await p
       let bufnr = await nvim.call('bufnr', ['%'])
       expect(bufnr).toBe(buf.bufnr)
       await nvim.call('cursor', [1, 1])
       p = buf.showMenu()
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('1')
       await p
       bufnr = await nvim.call('bufnr', ['%'])
@@ -496,7 +497,7 @@ bar
       let buf = await setup()
       await nvim.call('cursor', [4, 1])
       let p = buf.showMenu()
-      await helper.wait(30)
+      await helper.waitPrompt()
       await nvim.input('1')
       await p
       let nr = await nvim.call('tabpagenr')
@@ -509,7 +510,7 @@ bar
       let buf = await setup()
       await nvim.call('cursor', [4, 1])
       let p = buf.showMenu()
-      await helper.wait(30)
+      await helper.waitPrompt()
       await nvim.input('2')
       await p
       let items = buf.fileItems
@@ -547,7 +548,7 @@ bar
       await nvim.resumeNotification()
       let doc = workspace.getDocument(buf.bufnr)
       await doc.synchronize()
-      let res = await refactor.save(buf.buffer.id)
+      let res = await helper.doAction('saveRefactor', doc.bufnr)
       expect(res).toBe(true)
       expect(getRanges()).toEqual([[0, 2], [3, 4]])
       let content = fs.readFileSync(filename, 'utf8')
@@ -616,9 +617,9 @@ bar
           return null
         }
       })
-      await refactor.doRefactor()
+      await helper.doAction('refactor')
       let res = await helper.getCmdline()
-      expect(res).toMatch(/unable to rename/)
+      expect(res).toMatch(/Error/)
     })
 
     it('should show message when returned edits is null', async () => {
@@ -651,11 +652,11 @@ bar
         }
       })
       await helper.createDocument(filepath)
-      let winid = await nvim.call('win_getid')
+      let winid = await nvim.call('win_getid') as number
       await refactor.doRefactor()
-      let currWin = await nvim.call('win_getid')
+      let currWin = await nvim.call('win_getid') as number
       expect(currWin - winid).toBeGreaterThan(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let b = refactor.getBuffer(bufnr)
       expect(b).toBeDefined()
     })

@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { Location, Range } from 'vscode-languageserver-protocol'
+import { Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -28,6 +29,17 @@ function createLocations(): Location[] {
 }
 
 describe('showLocations()', () => {
+  it('should show locations by editor.action.showReferences', async () => {
+    let doc = await workspace.document
+    let uri = doc.uri
+    let locations = createLocations()
+    await commands.executeCommand('editor.action.showReferences', uri, Position.create(0, 0), locations)
+    await helper.waitValue(async () => {
+      let wins = await nvim.windows
+      return wins.length > 1
+    }, true)
+  })
+
   it('should show location list by default', async () => {
     let locations = createLocations()
     await workspace.showLocations(locations)
@@ -69,7 +81,7 @@ autocmd User CocLocationsChange :call OnLocationsChange()`)
 
 describe('jumpTo()', () => {
   it('should jumpTo position', async () => {
-    let uri = URI.file('/tmp/foo').toString()
+    let uri = URI.file('/tmp/foo')
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     await nvim.command('setl buftype=nofile')
     let buf = await nvim.buffer
@@ -77,7 +89,7 @@ describe('jumpTo()', () => {
     expect(name).toMatch('/foo')
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await workspace.jumpTo(uri, { line: 1, character: 1 })
-    let pos = await nvim.call('getcurpos')
+    let pos = await nvim.call('getcurpos') as number[]
     expect(pos.slice(1, 3)).toEqual([2, 2])
   })
 
@@ -87,6 +99,8 @@ describe('jumpTo()', () => {
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toBe(uri)
+    let doc = await workspace.document
+    expect(doc.uri.startsWith('zipfile:/tmp')).toBe(true)
   })
 
   it('should jump without position', async () => {
@@ -105,6 +119,16 @@ describe('jumpTo()', () => {
     expect(name).toBe(uri)
   })
 
+  it('should jump with uri fragment', async () => {
+    let uri = URI.file(__filename).with({ fragment: '3,3' }).toString()
+    await workspace.jumpTo(uri)
+    let cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([2, 2])
+    uri = URI.file(__filename).with({ fragment: '1' }).toString()
+    await workspace.jumpTo(uri)
+    cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([0, 0])
+  })
 })
 
 describe('openResource()', () => {
@@ -131,9 +155,7 @@ describe('openResource()', () => {
     let buf = await helper.edit()
     let doc = workspace.getDocument(buf.id)
     await workspace.openResource(doc.uri)
-    await helper.wait(30)
-    let bufnr = await nvim.call('bufnr', '%')
-    expect(bufnr).toBe(buf.id)
+    await helper.waitFor('bufnr', ['%'], buf.id)
   })
 
   it('should open url', async () => {
@@ -141,8 +163,6 @@ describe('openResource()', () => {
     let buf = await helper.edit()
     let uri = 'http://example.com'
     await workspace.openResource(uri)
-    await helper.wait(30)
-    let bufnr = await nvim.call('bufnr', '%')
-    expect(bufnr).toBe(buf.id)
+    await helper.waitFor('bufnr', ['%'], buf.id)
   })
 })

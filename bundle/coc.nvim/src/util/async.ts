@@ -1,4 +1,4 @@
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken } from '../util/protocol'
 
 const defaultYieldTimeout = 15
 
@@ -77,7 +77,7 @@ export async function filter<P>(items: ReadonlyArray<P>, isValid: (item: P) => b
   // Convert the first batch sync on the same frame.
   let index = convertBatch(0)
   while (index !== -1) {
-    if (token !== undefined && token.isCancellationRequested) {
+    if (token != null && token.isCancellationRequested) {
       break
     }
     index = await new Promise(resolve => {

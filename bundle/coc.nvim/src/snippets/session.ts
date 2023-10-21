@@ -1,20 +1,22 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, rangeInRange } from '../util/position'
-import { byteLength } from '../util/string'
+import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
+import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
-const logger = require('../util/logger')('snippets-session')
+const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
 
 interface DocumentChange {
@@ -22,12 +24,18 @@ interface DocumentChange {
   change: TextDocumentContentChange
 }
 
+export interface SnippetConfig {
+  readonly highlight: boolean
+  readonly nextOnDelete: boolean
+  readonly preferComplete: boolean
+}
+
 export class SnippetSession {
   private current: Marker
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
   private disposable: Disposable
-  private mutex = new Mutex()
+  public mutex = new Mutex()
   private _applying = false
   private _isActive = false
   private _snippet: CocSnippet = null
@@ -37,13 +45,11 @@ export class SnippetSession {
   constructor(
     private nvim: Neovim,
     public readonly document: Document,
-    private enableHighlight = false,
-    private preferComplete = false
+    private readonly config: SnippetConfig
   ) {
     this.disposable = document.onDocumentChange(async e => {
       if (this._applying || !this._isActive) return
       let changes = e.contentChanges
-      if (changes.length === 0) return
       await this.synchronize({ version: e.textDocument.version, change: changes[0] })
     })
   }
@@ -68,7 +74,7 @@ export class SnippetSession {
       let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
       await snippet.init(context)
       this._snippet = snippet
-      this.current = snippet.firstPlaceholder?.marker
+      this.current = snippet.firstPlaceholder!.marker
       edits.push(TextEdit.replace(range, snippet.text))
       // try fix indent of remain text
       if (inserted.replace(/\$0$/, '').endsWith('\n')) {
@@ -111,7 +117,7 @@ export class SnippetSession {
   private activate(): void {
     if (this._isActive) return
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [this.preferComplete ? 1 : 0], true)
+    this.nvim.call('coc#snippet#enable', [this.config.preferComplete ? 1 : 0], true)
   }
 
   public deactivate(): void {
@@ -119,9 +125,10 @@ export class SnippetSession {
     if (!this._isActive) return
     this.disposable.dispose()
     this._isActive = false
+    this._snippet = undefined
     this.current = null
     this.nvim.call('coc#snippet#disable', [], true)
-    if (this.enableHighlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
+    if (this.config.highlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onCancelEvent.fire(void 0)
     logger.debug(`session ${this.bufnr} cancelled`)
   }
@@ -162,12 +169,13 @@ export class SnippetSession {
     let { nvim, document } = this
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
-    const len = end.character - start.character
-    const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
+    const line = document.getline(start.line)
+    const col = byteIndex(line, start.character) + 1
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-      let arr = marker.choice.options.map(o => o.value)
-      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
+      let sources = (await import('../completion/sources')).default
+      sources.setWords(marker.choice.options.map(o => o.value), col - 1)
+      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
       let finalCount = this.snippet.finalCount
@@ -185,7 +193,7 @@ export class SnippetSession {
   }
 
   private highlights(placeholder: CocSnippetPlaceholder, redrawVim = true): void {
-    if (!this.enableHighlight) return
+    if (!this.config.highlight) return
     // this.checkPosition
     let buf = this.document.buffer
     this.nvim.pauseNotification()
@@ -197,7 +205,7 @@ export class SnippetSession {
     this.nvim.resumeNotification(redrawVim, true)
   }
 
-  private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
+  private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd: boolean): Promise<void> {
     let { range, value } = placeholder
     let { nvim } = this
     if (value.length > 0) {
@@ -224,11 +232,13 @@ export class SnippetSession {
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
+  public get version(): number {
+    return this.textDocument ? this.textDocument.version : -1
+  }
+
   public async synchronize(change?: DocumentChange): Promise<void> {
-    this.cancel()
     await this.mutex.use(() => {
-      let version = this.textDocument ? this.textDocument.version : -1
-      if (change && (this.document.version != change.version || change.version - version !== 1)) {
+      if (change && (this.document.version != change.version || change.version - this.version !== 1)) {
         // can't be used any more
         change = undefined
       }
@@ -313,7 +323,8 @@ export class SnippetSession {
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
     if (res == null || tokenSource.token.isCancellationRequested) return
-    if (document.hasChanged) {
+    // happens when applyEdits just after TextInsert
+    if (document.dirty || !equals(document.textDocument.lines, d.lines)) {
       tokenSource.cancel()
       tokenSource.dispose()
       return
@@ -337,13 +348,22 @@ export class SnippetSession {
     }
     logger.debug('update cost:', Date.now() - start, res.delta)
     this.textDocument = this.document.textDocument
+    if (this.config.nextOnDelete) {
+      if (curr && curr.value.length > 0 && placeholder.marker.toString() === '') {
+        let next = this.snippet.getNextPlaceholder(placeholder.index)
+        if (next) await this.selectPlaceholder(next)
+      }
+    }
   }
 
   public async forceSynchronize(): Promise<void> {
-    this.cancel()
     await this.document.patchChange()
     let release = await this.mutex.acquire()
     release()
+    // text change event may not fired
+    if (this.document.version !== this.version) {
+      await this.synchronize()
+    }
   }
 
   public cancel(): void {

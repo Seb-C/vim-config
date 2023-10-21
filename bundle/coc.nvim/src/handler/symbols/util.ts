@@ -1,5 +1,6 @@
 'use strict'
-import { DocumentSymbol, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-protocol'
+import { DocumentSymbol, Range, SymbolTag } from 'vscode-languageserver-types'
+import { defaultValue } from '../../util'
 import { getSymbolKind } from '../../util/convert'
 import { comparePosition } from '../../util/position'
 
@@ -25,15 +26,15 @@ export function convertSymbols(symbols: DocumentSymbol[]): SymbolInfo[] {
   return res
 }
 
-export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
+function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
   return comparePosition(ra.start, rb.start)
 }
 
-export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
+function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
   let { name, selectionRange, detail, kind, children, range, tags } = sym
-  let { start } = selectionRange || range
+  let { start } = defaultValue(selectionRange, range)
   let obj: SymbolInfo = {
     col: start.character + 1,
     lnum: start.line + 1,
@@ -52,12 +53,4 @@ export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
       addDocumentSymbol(res, sym, level + 1)
     }
   }
-}
-
-function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
-  return a && !a.hasOwnProperty('location')
-}
-
-export function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
-  return isDocumentSymbol(a[0])
 }

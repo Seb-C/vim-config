@@ -1,20 +1,20 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fastDiff from 'fast-diff'
-import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
 import { ChangeAnnotation, CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import type { LinesChange } from '../core/files'
 import type Keymaps from '../core/keymaps'
 import events from '../events'
-import { DocumentChange, LinesChange } from '../types'
+import { DocumentChange } from '../types'
 import { disposeAll } from '../util'
+import { toArray } from '../util/array'
 import { isParentFolder } from '../util/fs'
-import { getAnnotationKey, getPositionFromEdits, mergeSort } from '../util/textedit'
-import Highlighter from './highligher'
-const logger = require('../util/logger')('mdoe-editInspect')
+import { fastDiff, path } from '../util/node'
+import { Disposable } from '../util/protocol'
+import { getAnnotationKey, getPositionFromEdits, mergeSortEdits } from '../util/textedit'
+import Highlighter from './highlighter'
 
-export type RecoverFunc = () => Promise<any>
+export type RecoverFunc = () => Promise<any> | void
 
 export interface EditState {
   edit: WorkspaceEdit
@@ -61,7 +61,7 @@ export default class EditInspect {
     nvim.command('setl nobuflisted wrap undolevels=-1 filetype=cocedits noswapfile', true)
     await nvim.resumeNotification(true)
     let buffer = await nvim.buffer
-    let cwd = await nvim.call('getcwd')
+    let cwd = await nvim.call('getcwd') as string
     this.bufnr = buffer.id
     const relpath = (uri: string): string => {
       let fsPath = URI.parse(uri).fsPath
@@ -71,7 +71,8 @@ export default class EditInspect {
       return path.isAbsolute(filepath) ? filepath : path.join(cwd, filepath)
     }
     let highligher = new Highlighter()
-    let map = grouByAnnotation(state.edit.documentChanges ?? [], state.edit.changeAnnotations ?? {})
+    let changes = toArray(state.edit.documentChanges)
+    let map = grouByAnnotation(changes, state.edit.changeAnnotations ?? {})
     for (let [label, changes] of map.entries()) {
       if (label) {
         highligher.addLine(label, 'MoreMsg')
@@ -121,9 +122,9 @@ export default class EditInspect {
     highligher.render(buffer)
     buffer.setOption('modifiable', false, true)
     await nvim.resumeNotification(true)
-    this.disposables.push(this.keymaps.registerLocalKeymap('n', '<CR>', async () => {
-      let lnum = await nvim.call('line', '.')
-      let col = await nvim.call('col', '.')
+    this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<CR>', async () => {
+      let lnum = await nvim.call('line', '.') as number
+      let col = await nvim.call('col', '.') as number
       let find: ChangedFileItem
       for (let i = this.items.length - 1; i >= 0; i--) {
         let item = this.items[i]
@@ -136,27 +137,13 @@ export default class EditInspect {
       let uri = URI.file(absPath(find.filepath)).toString()
       let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath
       await nvim.call('coc#util#open_file', ['tab drop', absPath(filepath)])
-      // need change old lnum to new lnum
-      if (typeof find.lnum === 'number') {
-        let changes = state.edit.documentChanges ?? []
-        let change = changes.find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
-        let lnum = find.lnum
-        if (change) {
-          let edits = mergeSort(change.edits, (a, b) => {
-            let diff = a.range.start.line - b.range.start.line
-            if (diff === 0) {
-              return a.range.start.character - b.range.start.character
-            }
-            return diff
-          })
-          let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
-          lnum = pos.line + 1
-        }
-        await nvim.call('cursor', [lnum, col])
-      }
+      let documentChanges = toArray(state.edit.documentChanges)
+      let change = documentChanges.find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
+      let originLine = getOriginalLine(find, change)
+      if (originLine !== undefined) await nvim.call('cursor', [originLine, col])
       nvim.redrawVim()
     }, true))
-    this.disposables.push(this.keymaps.registerLocalKeymap('n', '<esc>', async () => {
+    this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<esc>', async () => {
       nvim.command('bwipeout!', true)
     }, true))
   }
@@ -183,13 +170,13 @@ export default class EditInspect {
           this.addFile(fsPath, highligher, curr)
           highligher.addLine('')
           let last = parts[parts.length - 1]
-          if (last.length > 0) highligher.addText(last)
+          highligher.addText(last)
         }
         lnum += text.split('\n').length - 1
       } else if (diff[0] == fastDiff.DELETE) {
         lnum += diff[1].split('\n').length - 1
         highligher.addText(diff[1], 'DiffDelete')
-      } else if (diff[0] == fastDiff.INSERT) {
+      } else {
         highligher.addText(diff[1], 'DiffAdd')
       }
     }
@@ -200,11 +187,22 @@ export default class EditInspect {
   }
 }
 
-export function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]: ChangeAnnotation }): Map<string | null, DocumentChange[]> {
+export function getOriginalLine(item: ChangedFileItem, change: TextDocumentEdit | undefined): number | undefined {
+  if (typeof item.lnum !== 'number') return undefined
+  let lnum = item.lnum
+  if (change) {
+    let edits = mergeSortEdits(change.edits)
+    let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
+    lnum = pos.line + 1
+  }
+  return lnum
+}
+
+function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]: ChangeAnnotation }): Map<string | null, DocumentChange[]> {
   let map: Map<string | null, DocumentChange[]> = new Map()
   for (let change of changes) {
     let id = getAnnotationKey(change) ?? null
-    let key = id ? annotations[id].label ?? null : null
+    let key = id ? annotations[id]?.label : null
     let arr = map.get(key)
     if (arr) {
       arr.push(change)

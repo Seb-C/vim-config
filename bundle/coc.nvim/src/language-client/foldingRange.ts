@@ -1,15 +1,10 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, FoldingRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { FoldingRangeKind, FoldingRangeRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export type ProvideFoldingRangeSignature = (
   this: void,
@@ -28,10 +23,10 @@ export interface FoldingRangeProviderMiddleware {
   ) => ProviderResult<FoldingRange[]>
 }
 
-export class FoldingRangeFeature extends TextDocumentFeature<
-  boolean | FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeProvider
-  > {
-  constructor(client: BaseLanguageClient) {
+export class FoldingRangeFeature extends TextDocumentLanguageFeature<
+  boolean | FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeProvider, FoldingRangeProviderMiddleware
+> {
+  constructor(client: FeatureClient<FoldingRangeProviderMiddleware>) {
     super(client, FoldingRangeRequest.type)
   }
 
@@ -40,6 +35,8 @@ export class FoldingRangeFeature extends TextDocumentFeature<
     capability.dynamicRegistration = true
     capability.rangeLimit = 5000
     capability.lineFoldingOnly = true
+    capability.foldingRangeKind = { valueSet: [FoldingRangeKind.Comment, FoldingRangeKind.Imports, FoldingRangeKind.Region] }
+    capability.foldingRange = { collapsedText: false }
   }
 
   public initialize(
@@ -63,13 +60,9 @@ export class FoldingRangeFeature extends TextDocumentFeature<
           const requestParams: FoldingRangeParams = {
             textDocument: { uri: document.uri }
           }
-          return client.sendRequest(FoldingRangeRequest.type, requestParams, token).then(
-            res => res, (error: any) => {
-              return client.handleFailedRequest(FoldingRangeRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(FoldingRangeRequest.type, requestParams, token)
         }
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideFoldingRanges
           ? middleware.provideFoldingRanges(document, context, token, provideFoldingRanges)
           : provideFoldingRanges(document, context, token)

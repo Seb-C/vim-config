@@ -1,9 +1,20 @@
 'use strict'
-import { DiagnosticSeverity, Diagnostic, Range, DiagnosticTag, TextEdit } from 'vscode-languageserver-protocol'
-import { FloatConfig, LocationListItem } from '../types'
+import type { VirtualTextOption } from '@chemzqm/neovim'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range, TextEdit } from 'vscode-languageserver-types'
+import { FloatConfig } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'
 import { getPosition } from '../util/textedit'
+
+export interface LocationListItem {
+  bufnr: number
+  lnum: number
+  end_lnum: number
+  col: number
+  end_col: number
+  text: string
+  type: string
+}
 
 export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
@@ -14,8 +25,12 @@ export enum DiagnosticHighlight {
   Unused = 'CocUnusedHighlight'
 }
 
+/**
+ * Local diagnostic config
+ */
 export interface DiagnosticConfig {
-  highlighLimit: number
+  enable: boolean
+  highlightLimit: number
   highlightPriority: number
   autoRefresh: boolean
   enableSign: boolean
@@ -25,31 +40,37 @@ export interface DiagnosticConfig {
   enableMessage: string
   displayByAle: boolean
   signPriority: number
-  errorSign: string
-  warningSign: string
-  infoSign: string
-  hintSign: string
   level: number
   locationlistLevel: number | undefined
   signLevel: number | undefined
   messageLevel: number | undefined
   messageTarget: string
-  messageDelay: number
   refreshOnInsertMode: boolean
   virtualText: boolean
+  virtualTextAlign: VirtualTextOption['text_align']
   virtualTextLevel: number | undefined
-  virtualTextAlignRight: boolean
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
-  virtualTextSrcId?: number
   virtualTextPrefix: string
+  virtualTextFormat: string
+  virtualTextLimitInOneLine: number
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
-  showUnused?: boolean
-  showDeprecated?: boolean
-  format?: string
+  showUnused: boolean
+  showDeprecated: boolean
+  format: string
   floatConfig: FloatConfig
+}
+
+export function formatDiagnostic(format: string, diagnostic: Diagnostic): string {
+  let { source, code, severity, message } = diagnostic
+  let s = getSeverityName(severity)[0]
+  const codeStr = code ? ' ' + code : ''
+  return format.replace('%source', source)
+    .replace('%code', codeStr)
+    .replace('%severity', s)
+    .replace('%message', message)
 }
 
 export function getSeverityName(severity: DiagnosticSeverity): string {
@@ -129,9 +150,9 @@ export function getLocationListItem(bufnr: number, diagnostic: Diagnostic, lines
  * Sort by severity and position
  */
 export function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
-  if ((a.severity || 1) != (b.severity || 1)) {
-    return (a.severity || 1) - (b.severity || 1)
-  }
+  let sa = a.severity ?? 1
+  let sb = b.severity ?? 1
+  if (sa != sb) return sa - sb
   let d = comparePosition(a.range.start, b.range.start)
   if (d != 0) return d
   return a.source > b.source ? 1 : -1

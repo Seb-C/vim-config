@@ -3,8 +3,10 @@ import path from 'path'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import { IList, ListContext, ListItem, QuickfixItem } from '../../types'
+import { IList, ListContext, ListItem } from '../../list/types'
+import { QuickfixItem } from '../../types'
 import { disposeAll } from '../../util/index'
+import listConfiguration, { ListConfiguration } from '../../list/configuration'
 import window from '../../window'
 import helper from '../helper'
 
@@ -46,6 +48,15 @@ const locations: ReadonlyArray<QuickfixItem> = [{
   lnum: 3,
   text: 'option'
 }]
+
+async function waitPreviewWindow(): Promise<void> {
+  for (let i = 0; i < 40; i++) {
+    await helper.wait(50)
+    let has = await nvim.call('coc#list#has_preview') as number
+    if (has > 0) return
+  }
+  throw new Error('timeout after 2s')
+}
 
 const lineList: IList = {
   name: 'lines',
@@ -89,7 +100,7 @@ afterEach(async () => {
 })
 
 describe('isValidAction()', () => {
-  it('should check invalid action', async () => {
+  it('should check invalid action', () => {
     let mappings = manager.mappings
     expect(mappings.isValidAction('foo')).toBe(false)
     expect(mappings.isValidAction('do:switch')).toBe(true)
@@ -99,12 +110,25 @@ describe('isValidAction()', () => {
 })
 
 describe('User mappings', () => {
+  it('should not throw when session not exists', async () => {
+    let mappings = manager.mappings
+    let res = await mappings.navigate(true)
+    expect(res).toBe(false)
+    res = await mappings.navigate(false)
+    expect(res).toBe(false)
+  })
+
   it('should show warning for invalid key', async () => {
+    expect(ListConfiguration).toBeDefined()
+    expect(listConfiguration.fixKey('<c-a>')).toBe('<C-a>')
+    listConfiguration.fixKey('<a')
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch('not supported')
     let revert = helper.updateConfiguration('list.insertMappings', {
       xy: 'action:tabe',
     })
     await helper.wait(30)
-    let msg = await helper.getCmdline()
+    msg = await helper.getCmdline()
     revert()
     await nvim.command('echo ""')
     expect(msg).toMatch('Invalid configuration')
@@ -207,12 +231,13 @@ describe('User mappings', () => {
   it('should execute feedkeys keymap', async () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-f>': 'feedkeys:\\<C-f>',
+      '<C-b>': 'feedkeys!:\\<C-b>',
     })
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-f>')
-    let line = await nvim.call('line', '.')
-    expect(line).toBe(locations.length)
+    await helper.waitFor('line', ['.'], locations.length)
+    await helper.listInput('<C-b>')
   })
 
   it('should execute normal keymap', async () => {
@@ -349,10 +374,10 @@ describe('Default normal mappings', () => {
     expect(selected.length).toBe(locations.length)
   })
 
-  it('should stop by <C-c>', async () => {
+  it('should stop by <C-b>', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.listInput('<C-c>')
+    await helper.listInput('<C-b>')
     let loading = manager.session?.worker.isLoading
     expect(loading).toBe(false)
   })
@@ -370,7 +395,7 @@ describe('Default normal mappings', () => {
     await helper.createDocument()
     await manager.start(['--auto-preview', '--normal', 'location'])
     await manager.session.ui.ready
-    await helper.waitPreviewWindow()
+    await waitPreviewWindow()
     let winnr = await nvim.call('coc#list#has_preview') as number
     let winid = await nvim.call('win_getid', [winnr])
     await helper.listInput('<C-e>')
@@ -384,6 +409,7 @@ describe('Default normal mappings', () => {
   it('should insert command by :', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
+    await helper.wait(20)
     await helper.listInput(':')
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
     let res = await nvim.getVar('x')
@@ -410,7 +436,7 @@ describe('Default normal mappings', () => {
   })
 
   it('should stop task by <C-c>', async () => {
-    disposables.push(manager.registerList(new TestList(nvim)))
+    disposables.push(manager.registerList(new TestList()))
     let p = manager.start(['--normal', 'test'])
     await helper.wait(50)
     await nvim.input('<C-c>')
@@ -429,7 +455,7 @@ describe('Default normal mappings', () => {
   })
 
   it('should reload list by <C-l>', async () => {
-    let list = new TestList(nvim)
+    let list = new TestList()
     list.timeout = 0
     disposables.push(manager.registerList(list))
     await manager.start(['--normal', 'test'])
@@ -534,7 +560,7 @@ describe('list insert mappings', () => {
   it('should select action for visual selected items', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.wait(50)
+    await helper.waitPrompt()
     await nvim.input('V')
     await helper.wait(30)
     await nvim.input('2')
@@ -588,17 +614,30 @@ describe('list insert mappings', () => {
     await helper.listInput('<right>')
     await helper.listInput('c')
     let input = manager.prompt.input
+    let mode = manager.prompt.mode
+    manager.prompt.input = input
+    manager.prompt.mode = mode
+    await helper.listInput('<home>')
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
     expect(input).toBe('afc')
   })
 
   it('should move cursor by <end> and <home>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
+    await helper.listInput('ff')
     await helper.listInput('<home>')
     await helper.listInput('<end>')
-    await helper.listInput('a')
+    await helper.listInput('<end>')
     let input = manager.prompt.input
-    expect(input).toBe('a')
+    manager.prompt.removeWord()
+    manager.prompt.removeWord()
+    manager.prompt.removeTail()
+    manager.prompt.removeTail()
+    expect(input).toBe('ff')
   })
 
   it('should move cursor by <PageUp> <PageDown> <C-d>', async () => {

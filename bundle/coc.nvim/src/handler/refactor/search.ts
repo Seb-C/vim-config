@@ -2,15 +2,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
-import path from 'path'
-import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
-import Highlighter from '../../model/highligher'
+import { createLogger } from '../../logger'
+import Highlighter from '../../model/highlighter'
 import { ansiparse } from '../../util/ansiparse'
 import { Mutex } from '../../util/mutex'
+import { path, readline } from '../../util/node'
 import window from '../../window'
 import RefactorBuffer, { FileItem, FileItemDef } from './buffer'
-const logger = require('../../util/logger')('handler-search')
+const logger = createLogger('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
 const controlCode = '\x1b'
@@ -32,6 +32,7 @@ class Task extends EventEmitter {
     rl.on('line', content => {
       if (content.includes(controlCode)) {
         let items = ansiparse(content)
+        if (items.length == 0) return
         if (items[0].foreground == 'black') {
           fileItem = { filepath: path.join(cwd, items[0].text), ranges: [] }
           return
@@ -130,7 +131,7 @@ export default class Search {
       })
       this.task.on('error', message => {
         clearInterval(interval)
-        window.showMessage(`Error on command "${cmd}": ${message}`, 'error')
+        void window.showErrorMessage(`Error on command "${cmd}": ${message}`)
         this.task = null
         reject(new Error(message))
       })

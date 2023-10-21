@@ -3,7 +3,6 @@ set nocompatible
 set hidden
 set noswapfile
 set nobackup
-set completeopt=menuone,noinsert,noselect
 set tabstop=2
 set cmdheight=2
 set shiftwidth=2
@@ -17,14 +16,9 @@ let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
 let g:coc_node_env = 'test'
 
-let g:coc_vim_commands = [{
-  \ "id": "config",
-  \ "cmd": "edit coc-settings.json"
-  \ }]
-
-autocmd BufNewFile,BufRead *.ts  set filetype=typescript
-
 execute 'set runtimepath+='.s:root
+
+call coc#add_command('config', 'let g:coc_config_init = 1')
 
 " Float window id on current tab.
 function! GetFloatWin() abort
@@ -61,4 +55,8 @@ function! GetFloatCursorRelative(winid) abort
   endif
   let pos = popup_getpos(a:winid)
   return {'row' : pos['line'] - cursorLine - 1, 'col' : pos['col'] - cursorCol - 1}
+endfunction
+
+function! DictAdd() dict
+  return self.key + 1
 endfunction

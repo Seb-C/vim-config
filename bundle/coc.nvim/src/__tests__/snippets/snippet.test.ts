@@ -4,10 +4,10 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
-import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
-import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
+import { addPythonTryCatch, convertRegex, executePythonCode, getVariablesCode, UltiSnippetContext } from '../../snippets/eval'
+import { Placeholder, TextmateSnippet, Variable } from '../../snippets/parser'
+import { checkContentBefore, CocSnippet, comparePlaceholder, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
+import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -38,8 +38,8 @@ function createTextDocument(text: string): LinesTextDocument {
 }
 
 describe('CocSnippet', () => {
-  async function assertResult(snip: string, resolved: string) {
-    let c = await createSnippet(snip, {})
+  async function assertResult(snip: string, resolved: string, opts?: UltiSnippetOption) {
+    let c = await createSnippet(snip, opts)
     expect(c.text).toBe(resolved)
   }
 
@@ -55,6 +55,16 @@ describe('CocSnippet', () => {
   }
 
   describe('resolveVariables()', () => {
+    it('should padZero', () => {
+      expect(padZero(1)).toBe('01')
+      expect(padZero(10)).toBe('10')
+    })
+
+    it('should getVariablesCode', () => {
+      expect(getVariablesCode({})).toBe('t = ()')
+      expect(getVariablesCode({ 1: 'foo', 3: 'bar' })).toBe('t = ("","foo","","bar",)')
+    })
+
     it('should resolve uppercase variables', async () => {
       let doc = await helper.createDocument()
       let fsPath = URI.parse(doc.uri).fsPath
@@ -73,6 +83,7 @@ describe('CocSnippet', () => {
       let d = new Date()
       await assertResult('$CURRENT_YEAR', d.getFullYear().toString())
       await assertResult('$NOT_EXISTS', 'NOT_EXISTS')
+      await assertResult('$TM_CURRENT_WORD', 'foo')
     })
 
     it('should resolve new VSCode variables', async () => {
@@ -122,19 +133,19 @@ describe('CocSnippet', () => {
 
   describe('code block initialize', () => {
     it('should init shell code block', async () => {
-      await assertResult('`echo "hello"` world', 'hello world')
+      await assertResult('`echo "hello"` world', 'hello world', {})
     })
 
     it('should init vim block', async () => {
-      await assertResult('`!v eval("1 + 1")` = 2', '2 = 2')
+      await assertResult('`!v eval("1 + 1")` = 2', '2 = 2', {})
       await nvim.setLine('  ')
-      await assertResult('${1:`!v indent(".")`} "$1"', '2 "2"')
+      await assertResult('${1:`!v indent(".")`} "$1"', '2 "2"', {})
     })
 
     it('should init code block in placeholders', async () => {
-      await assertResult('f ${1:`echo "b"`}', 'f b')
-      await assertResult('f ${1:`!v "b"`}', 'f b')
-      await assertResult('f ${1:`!p snip.rv = "b"`}', 'f b')
+      await assertResult('f ${1:`echo "b"`}', 'f b', {})
+      await assertResult('f ${1:`!v "b"`}', 'f b', {})
+      await assertResult('f ${1:`!p snip.rv = "b"`}', 'f b', {})
     })
 
     it('should setup python globals', async () => {
@@ -192,30 +203,30 @@ describe('CocSnippet', () => {
     })
 
     it('should init python code block', async () => {
-      await assertResult('`!p snip.rv = "a"` = a', 'a = a')
-      await assertResult('`!p snip.rv = t[1]` = ${1:a}', 'a = a')
-      await assertResult('`!p snip.rv = t[1]` = ${1:`!v eval("\'a\'")`}', 'a = a')
-      await assertResult('`!p snip.rv = t[1] + t[2]` = ${1:a} ${2:b}', 'ab = a b')
+      await assertResult('`!p snip.rv = "a"` = a', 'a = a', {})
+      await assertResult('`!p snip.rv = t[1]` = ${1:a}', 'a = a', {})
+      await assertResult('`!p snip.rv = t[1]` = ${1:`!v eval("\'a\'")`}', 'a = a', {})
+      await assertResult('`!p snip.rv = t[1] + t[2]` = ${1:a} ${2:b}', 'ab = a b', {})
     })
 
     it('should init python placeholder', async () => {
-      await assertResult('foo ${1/^\\|(.*)\\|$/$1/} ${1:|`!p snip.rv = "a"`|}', 'foo a |a|')
-      await assertResult('foo $1 ${1:`!p snip.rv = "a"`}', 'foo a a')
-      await assertResult('${1/^_(.*)/$1/} $1 aa ${1:`!p snip.rv = "_foo"`}', 'foo _foo aa _foo')
+      await assertResult('foo ${1/^\\|(.*)\\|$/$1/} ${1:|`!p snip.rv = "a"`|}', 'foo a |a|', {})
+      await assertResult('foo $1 ${1:`!p snip.rv = "a"`}', 'foo a a', {})
+      await assertResult('${1/^_(.*)/$1/} $1 aa ${1:`!p snip.rv = "_foo"`}', 'foo _foo aa _foo', {})
     })
 
     it('should init nested python placeholder', async () => {
-      await assertResult('${1:foo`!p snip.rv = t[2]`} ${2:bar} $1', 'foobar bar foobar')
-      await assertResult('${3:f${2:oo${1:b`!p snip.rv = "ar"`}}} `!p snip.rv = t[3]`', 'foobar foobar')
+      await assertResult('${1:foo`!p snip.rv = t[2]`} ${2:bar} $1', 'foobar bar foobar', {})
+      await assertResult('${3:f${2:oo${1:b`!p snip.rv = "ar"`}}} `!p snip.rv = t[3]`', 'foobar foobar', {})
     })
 
     it('should recursive init python placeholder', async () => {
-      await assertResult('${1:`!p snip.rv = t[2]`} ${2:`!p snip.rv = t[3]`} ${3:`!p snip.rv = t[4][0]`} ${4:bar}', 'b b b bar')
-      await assertResult('${1:foo} ${2:`!p snip.rv = t[1][0]`} ${3:`!p snip.rv = ""`} ${4:`!p snip.rv = t[2]`}', 'foo f  f')
+      await assertResult('${1:`!p snip.rv = t[2]`} ${2:`!p snip.rv = t[3]`} ${3:`!p snip.rv = t[4][0]`} ${4:bar}', 'b b b bar', {})
+      await assertResult('${1:foo} ${2:`!p snip.rv = t[1][0]`} ${3:`!p snip.rv = ""`} ${4:`!p snip.rv = t[2]`}', 'foo f  f', {})
     })
 
     it('should update python block from placeholder', async () => {
-      await assertResult('`!p snip.rv = t[1][0] if len(t[1]) > 0 else ""` ${1:`!p snip.rv = t[2]`} ${2:foo}', 'f foo foo')
+      await assertResult('`!p snip.rv = t[1][0] if len(t[1]) > 0 else ""` ${1:`!p snip.rv = t[2]`} ${2:foo}', 'f foo foo', {})
     })
 
     it('should update nested placeholder values', async () => {
@@ -223,6 +234,14 @@ describe('CocSnippet', () => {
       expect(c.text).toBe('foo bar oo bar foo bar')
     })
 
+    it('should update variable marker', async () => {
+      let c = await createSnippet('${1:${VISUAL}`!p snip.rv = "bar"`} $1', {})
+      let variable = c.tmSnippet.placeholders[0].children[0] as Variable
+      await c.tmSnippet.update(nvim, variable, 'x')
+      expect(c.tmSnippet.toString()).toBe('bar bar')
+      variable = new Variable('name')
+      await c.tmSnippet.update(nvim, variable, 'x')
+    })
   })
 
   describe('getContentBefore()', () => {
@@ -274,6 +293,11 @@ describe('CocSnippet', () => {
       assert(c, 1, [1, 2, 0])
       assert(c, 2, [2, 1, 0])
     })
+
+    it('should compares placeholders', () => {
+      expect(comparePlaceholder({ primary: false, index: 1 }, { primary: false, index: 0 })).toBe(-1)
+      expect(comparePlaceholder({ primary: true, index: 1 }, { primary: false, index: 1 })).toBe(-1)
+    })
   })
 
   describe('getNewText()', () => {
@@ -290,14 +314,20 @@ describe('CocSnippet', () => {
   })
 
   describe('updatePlaceholder()', () => {
-    async function assertUpdate(text: string, value: string, result: string, index = 1): Promise<CocSnippet> {
-      let c = await createSnippet(text, {})
+    async function assertUpdate(text: string, value: string, result: string, index = 1, ultisnip: UltiSnippetOption | null = {}): Promise<CocSnippet> {
+      let c = await createSnippet(text, ultisnip)
       let p = c.getPlaceholder(index)
       expect(p != null).toBe(true)
       await c.tmSnippet.update(nvim, p.marker, value)
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
+
+    it('should update variable placeholders', async () => {
+      await assertUpdate('${foo} ${foo}', 'bar', 'bar bar', 1, null)
+      await assertUpdate('${foo} ${foo:x}', 'bar', 'bar bar', 1, null)
+      await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar', 1, null)
+    })
 
     it('should work with snip.c', async () => {
       let code = [
@@ -324,12 +354,6 @@ describe('CocSnippet', () => {
 
     it('should calculate delta', async () => {
       // TODO
-    })
-
-    it('should update variable placeholders', async () => {
-      await assertUpdate('${foo} ${foo}', 'bar', 'bar bar')
-      await assertUpdate('${foo} ${foo:x}', 'bar', 'bar bar')
-      await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar')
     })
 
     it('should update placeholder with code blocks', async () => {

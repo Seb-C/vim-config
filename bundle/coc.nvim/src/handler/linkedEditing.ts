@@ -1,18 +1,22 @@
 'use strict'
 import { Neovim, Window } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { CancellationTokenSource, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { Position, TextEdit } from 'vscode-languageserver-types'
 import TextRange from '../cursors/textRange'
 import { getBeforeCount, getChange, getDelta } from '../cursors/util'
 import events from '../events'
-import languages from '../languages'
+import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, HandlerDelegate } from '../types'
+import { DidChangeTextDocumentParams } from '../types'
+import { getConditionValue } from '../util'
+import { debounce } from '../util/node'
 import { emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersect } from '../util/position'
+import { CancellationTokenSource } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-linkedEditing')
+import { HandlerDelegate } from './types'
+
+const debounceTime = getConditionValue(200, 10)
 
 export default class LinkedEditingHandler {
   private changing = false
@@ -23,14 +27,14 @@ export default class LinkedEditingHandler {
   private tokenSource: CancellationTokenSource | undefined
   public checkPosition: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
   constructor(private nvim: Neovim, handler: HandlerDelegate) {
-    this.checkPosition = debounce(this._checkPosition, global.__TEST__ ? 10 : 100)
+    this.checkPosition = debounce(this._checkPosition, debounceTime)
     handler.addDisposable(events.on('CursorMoved', (bufnr, cursor) => {
       this.cancel()
-      this.checkPosition(bufnr, cursor)
+      this.checkPosition(bufnr, [cursor[0], cursor[1]])
     }))
     handler.addDisposable(events.on('CursorMovedI', (bufnr, cursor) => {
       this.cancel()
-      this.checkPosition(bufnr, cursor)
+      this.checkPosition(bufnr, [cursor[0], cursor[1]])
     }))
     handler.addDisposable(window.onDidChangeActiveTextEditor(() => {
       this.cancel()
@@ -40,7 +44,7 @@ export default class LinkedEditingHandler {
       if (bufnr !== this.bufnr) return
       let doc = workspace.getDocument(bufnr)
       if (!this.wordPattern) {
-        if (!doc.isWord(character)) this.cancelEdit()
+        if (!doc.isWord(character) && character !== '-') this.cancelEdit()
       } else {
         let r = new RegExp(this.wordPattern)
         if (!r.test(character)) this.cancelEdit()
@@ -78,7 +82,6 @@ export default class LinkedEditingHandler {
         this.cancelEdit()
         return
       }
-      logger.debug('affected single range')
       // change textRange
       await this.applySingleEdit(affected[0], { range, newText: text })
     } else {
@@ -110,21 +113,21 @@ export default class LinkedEditingHandler {
   }
 
   private doHighlights(): void {
-    let { window, ranges } = this
+    let { window, ranges, nvim } = this
     if (window && ranges) {
-      this.nvim.pauseNotification()
+      nvim.pauseNotification()
       window.clearMatchGroup('^CocLinkedEditing')
       window.highlightRanges('CocLinkedEditing', ranges.map(o => o.range), 99, true)
-      this.nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
     }
   }
 
   private _checkPosition(bufnr: number, cursor: [number, number]): void {
     if (events.pumvisible || !workspace.isAttached(bufnr)) return
     let doc = workspace.getDocument(bufnr)
-    let config = workspace.getConfiguration('coc.preferences', doc.uri)
+    let config = workspace.getConfiguration('coc.preferences', doc)
     let enabled = config.get<boolean>('enableLinkedEditing', false)
-    if (!enabled || !languages.hasProvider('linkedEditing', doc.textDocument)) return
+    if (!enabled || !languages.hasProvider(ProviderName.LinkedEditing, doc.textDocument)) return
     let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
     let position = Position.create(cursor[0] - 1, character)
     if (this.ranges) {
@@ -140,13 +143,13 @@ export default class LinkedEditingHandler {
     let textDocument = doc.textDocument
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let window = await this.nvim.window
+    let win = await this.nvim.window
     let linkedRanges = await languages.provideLinkedEdits(textDocument, position, token)
     if (token.isCancellationRequested || !linkedRanges || linkedRanges.ranges.length == 0) return
     let ranges = linkedRanges.ranges.map(o => new TextRange(o.start.line, o.start.character, textDocument.getText(o)))
     this.wordPattern = linkedRanges.wordPattern
     this.bufnr = doc.bufnr
-    this.window = window
+    this.window = win
     this.ranges = ranges
     this.doHighlights()
   }

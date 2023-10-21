@@ -1,12 +1,11 @@
 'use strict'
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, Position, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import type { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, ReferenceParams, RelativePattern, SignatureHelpContext, SignatureHelpParams, TextDocumentPositionParams, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { TextDocumentWillSaveEvent } from '../../types'
+import { TextDocumentWillSaveEvent } from '../../core/files'
+import RelativePatternImpl from '../../model/relativePattern'
+import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../../types'
 import { omit } from '../../util/lodash'
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
@@ -18,6 +17,20 @@ export function convertToTextDocumentItem(document: TextDocument): TextDocumentI
   }
 }
 
+export function asOpenTextDocumentParams(textDocument: TextDocument): DidOpenTextDocumentParams {
+  return {
+    textDocument: convertToTextDocumentItem(textDocument)
+  }
+}
+
+export function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
+  let { baseUri, pattern } = rp
+  if (typeof baseUri === 'string') {
+    return new RelativePatternImpl(URI.parse(baseUri), pattern)
+  }
+  return new RelativePatternImpl(baseUri, pattern)
+}
+
 export function asCloseTextDocumentParams(document: TextDocument): DidCloseTextDocumentParams {
   return {
     textDocument: {
@@ -26,13 +39,25 @@ export function asCloseTextDocumentParams(document: TextDocument): DidCloseTextD
   }
 }
 
-export function asChangeTextDocumentParams(document: TextDocument): DidChangeTextDocumentParams {
+export function asFullChangeTextDocumentParams(document: TextDocument): DidChangeTextDocumentParams {
   let result: DidChangeTextDocumentParams = {
     textDocument: {
       uri: document.uri,
       version: document.version
     },
     contentChanges: [{ text: document.getText() }]
+  }
+  return result
+}
+
+export function asChangeTextDocumentParams(event: TextDocumentChangeEvent): DidChangeTextDocumentParams {
+  let { textDocument, contentChanges } = event
+  let result: DidChangeTextDocumentParams = {
+    textDocument: {
+      uri: textDocument.uri,
+      version: textDocument.version
+    },
+    contentChanges: contentChanges.slice()
   }
   return result
 }

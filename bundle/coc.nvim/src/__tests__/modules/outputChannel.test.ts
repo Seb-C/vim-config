@@ -18,14 +18,26 @@ afterAll(async () => {
 })
 
 describe('OutputChannel', () => {
-  test('bad channel name', () => {
-    let err
-    try {
-      new OutputChannel('@', nvim)
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
+  test('without nvim', () => {
+    let o = new OutputChannel('f')
+    o.appendLine('foo')
+    o.append('bar')
+    o.show()
+    o.hide()
+    o.clear()
+  })
+
+  test('channel name with special characters', async () => {
+    let ch = new OutputChannel("a@b 'c", nvim)
+    ch.show(false, 'edit')
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toBe('output:///a@b%20\'c')
+    let bufnr = await nvim.call('bufnr', ['%'])
+    ch.hide()
+    await helper.wait(10)
+    let loaded = await nvim.call('bufloaded', [bufnr])
+    expect(loaded).toBe(0)
+    ch.dispose()
   })
 
   test('outputChannel.show(true)', async () => {
@@ -34,6 +46,23 @@ describe('OutputChannel', () => {
     let bufnr = (await nvim.buffer).id
     c.show(true)
     await helper.waitFor('bufnr', ['%'], bufnr)
+    c.hide()
+    c.clear(1)
+    c.dispose()
+    c.append('')
+    c.appendLine('')
+  })
+
+  test('outputChannel.keep()', async () => {
+    await nvim.setLine('foo')
+    let c = new OutputChannel('clear', nvim)
+    c.appendLine('foo')
+    c.appendLine('bar')
+    c.show()
+    await helper.wait(10)
+    c.clear(2)
+    let lines = await nvim.call('getbufline', ['output:///clear', 1, '$']) as string[]
+    expect(lines.includes('bar')).toBe(true)
   })
 
   test('outputChannel.show(false)', async () => {

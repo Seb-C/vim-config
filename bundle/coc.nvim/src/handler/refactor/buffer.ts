@@ -1,25 +1,26 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import fastDiff from 'fast-diff'
-import path from 'path'
-import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { createLogger } from '../../logger'
 import Document from '../../model/document'
-import Highlighter from '../../model/highligher'
-import { BufferSyncItem, DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
+import Highlighter from '../../model/highlighter'
+import { DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
 import { disposeAll } from '../../util'
 import { isParentFolder, readFileLines, sameFile } from '../../util/fs'
 import { omit } from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
+import { fastDiff, path } from '../../util/node'
 import { equals } from '../../util/object'
 import { adjustRangePosition, emptyRange } from '../../util/position'
+import { Disposable } from '../../util/protocol'
 import { byteLength } from '../../util/string'
 import { getChangedLineCount, lineCountChange } from '../../util/textedit'
 import window from '../../window'
 import workspace from '../../workspace'
 import Changes, { LineInfo } from './changes'
-const logger = require('../../util/logger')('handler-refactorBuffer')
+const logger = createLogger('handler-refactorBuffer')
 
 export const SEPARATOR = '\u3000'
 
@@ -79,7 +80,7 @@ export interface RefactorBufferOpts {
   fromWinid: number
 }
 
-export default class RefactorBuffer implements BufferSyncItem {
+export default class RefactorBuffer {
   private _disposed = false
   private _fileItems: FileItem[] = []
   private mutex = new Mutex()
@@ -95,9 +96,9 @@ export default class RefactorBuffer implements BufferSyncItem {
     private opts: RefactorBufferOpts
   ) {
     this.changes = new Changes()
-    this.disposables.push(workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true))
+    this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', '<CR>', this.splitOpen.bind(this), true))
     if (config.showMenu) {
-      this.disposables.push(workspace.registerLocalKeymap('n', config.showMenu, this.showMenu.bind(this), true))
+      this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', config.showMenu, this.showMenu.bind(this), true))
     }
     workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
   }
@@ -361,7 +362,7 @@ export default class RefactorBuffer implements BufferSyncItem {
       nvim.command('normal! zz', true)
       await nvim.resumeNotification(true)
       if (!valid) {
-        this.opts.fromWinid = await nvim.call('win_getid')
+        this.opts.fromWinid = await nvim.call('win_getid') as number
       }
     }
   }

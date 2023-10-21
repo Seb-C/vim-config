@@ -1,14 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferChannel from '../model/outputChannel'
 import { TextDocumentContentProvider } from '../provider'
 import { OutputChannel } from '../types'
-const logger = require('../util/logger')('core-channels')
+import { Disposable } from '../util/protocol'
 
-export class Channels {
+class Channels {
   private outputChannels: Map<string, BufferChannel> = new Map()
   private bufnrs: Map<number, string> = new Map()
   private disposable: Disposable

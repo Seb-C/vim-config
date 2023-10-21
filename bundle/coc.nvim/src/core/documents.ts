@@ -1,21 +1,23 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import bytes from 'bytes'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { Disposable, Emitter, Event, FormattingOptions, Location, LocationLink, TextDocumentSaveReason, TextEdit } from 'vscode-languageserver-protocol'
+import { FormattingOptions, Location, LocationLink, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
+import { IConfigurationChangeEvent } from '../configuration/types'
 import events, { InsertChange } from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { BufferOption, DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
-import { disposeAll, platform } from '../util'
-import { readFileLine } from '../util/fs'
+import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
+import { defaultValue, disposeAll } from '../util'
+import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
+import { fs, os, path } from '../util/node'
+import * as platform from '../util/platform'
+import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
+import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
-const logger = require('../util/logger')('core-documents')
+const logger = createLogger('core-documents')
 
 interface StateInfo {
   bufnr: number
@@ -24,20 +26,26 @@ interface StateInfo {
   winids: number[]
 }
 
+interface DocumentsConfig {
+  maxFileSize: number
+  willSaveHandlerTimeout: number
+  useQuickfixForLocations: boolean
+}
+
+const cwd = normalizeFilePath(process.cwd())
+
 export default class Documents implements Disposable {
   private _cwd: string
   private _env: Env
   private _bufnr: number
   private _root: string
-  private _initialized = false
   private _attached = false
   private _currentResolve = false
   private nvim: Neovim
-  private maxFileSize: number
+  private config: DocumentsConfig
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   public buffers: Map<number, Document> = new Map()
-  private winids: Set<number> = new Set()
   private resolves: ((doc: Document) => void)[] = []
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument>()
   private readonly _onDidCloseDocument = new Emitter<LinesTextDocument>()
@@ -55,7 +63,9 @@ export default class Documents implements Disposable {
     private readonly configurations: Configurations,
     private readonly workspaceFolder: WorkspaceFolder,
   ) {
-    this._cwd = process.cwd()
+    this._cwd = cwd
+    this.getConfiguration()
+    this.configurations.onDidChange(this.getConfiguration, this, this.disposables)
   }
 
   public async attach(nvim: Neovim, env: Env): Promise<void> {
@@ -63,37 +73,16 @@ export default class Documents implements Disposable {
     this.nvim = nvim
     this._env = env
     this._attached = true
-    let preferences = this.configurations.getConfiguration('coc.preferences')
-    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
-    this.maxFileSize = bytes.parse(maxFileSize)
-    nvim.setVar('coc_max_filesize', this.maxFileSize, true)
-    let { bufnrs, winid, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
-    this.winids = new Set(winids)
+    let { bufnrs, bufnr } = await this.nvim.call('coc#util#all_state') as StateInfo
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
-    events.on('VimLeavePre', () => {
-      this.resolveCurrent(undefined)
-    }, null, this.disposables)
-    events.on('WinEnter', (winid: number) => {
-      this.winids.add(winid)
-    }, null, this.disposables)
-    events.on('BufWinEnter', (_, winid: number) => {
-      this.winids.add(winid)
+    events.on('BufRename', async bufnr => {
+      this.detachBuffer(bufnr)
+      await this.createDocument(bufnr)
     }, null, this.disposables)
     events.on('DirChanged', cwd => {
-      this._cwd = cwd
-    }, null, this.disposables)
-    // check unloaded buffers
-    events.on('CursorHold', async () => {
-      let { bufnrs, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
-      for (let bufnr of this.buffers.keys()) {
-        if (!bufnrs.includes(bufnr)) void events.fire('BufUnload', [bufnr])
-      }
-      for (let winid of this.winids) {
-        if (!winids.includes(winid)) void events.fire('WinClosed', [winid])
-      }
-      this.winids = new Set(winids)
+      this._cwd = normalizeFilePath(cwd)
     }, null, this.disposables)
     const checkCurrentBuffer = (bufnr: number) => {
       this._bufnr = bufnr
@@ -108,8 +97,6 @@ export default class Documents implements Disposable {
     events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
     events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
-    void events.fire('BufEnter', [bufnr])
-    void events.fire('BufWinEnter', [bufnr, winid])
     events.on('BufEnter', (bufnr: number) => {
       void this.createDocument(bufnr)
     }, null, this.disposables)
@@ -117,18 +104,22 @@ export default class Documents implements Disposable {
       ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
         events.on(event as any, (bufnr: number, info?: InsertChange) => {
           let doc = this.buffers.get(bufnr)
-          if (doc?.attached) doc.onTextChange(event, info)
+          if (doc && doc.attached) doc.onTextChange(event, info)
         }, null, this.disposables)
       })
-    } else {
-      events.on('CompleteDone', async item => {
-        if (!item.isSnippet) {
-          let doc = this.buffers.get(events.bufnr)
-          if (doc?.attached) doc._forceSync()
-        }
-      }, null, this.disposables)
     }
-    this._initialized = true
+  }
+
+  private getConfiguration(e?: IConfigurationChangeEvent): void {
+    if (!e || e.affectsConfiguration('coc.preferences')) {
+      let config = this.configurations.initialConfiguration.get('coc.preferences') as any
+      const bytes = require('bytes')
+      this.config = {
+        maxFileSize: bytes.parse(config.maxFileSize),
+        willSaveHandlerTimeout: defaultValue(config.willSaveHandlerTimeout, 500),
+        useQuickfixForLocations: config.useQuickfixForLocations
+      }
+    }
   }
 
   public get bufnr(): number {
@@ -144,20 +135,47 @@ export default class Documents implements Disposable {
   }
 
   public get documents(): Document[] {
-    return Array.from(this.buffers.values()).filter(o => o.attached && !o.isCommandLine)
+    return Array.from(this.buffers.values()).filter(o => o.attached)
   }
 
-  public get bufnrs(): number[] {
-    return Array.from(this.buffers.keys())
+  public async getCurrentUri(): Promise<string | undefined> {
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    let doc = this.getDocument(bufnr)
+    return doc ? doc.uri : undefined
+  }
+
+  public *attached(schema?: string): Iterable<Document> {
+    for (let doc of this.buffers.values()) {
+      if (!doc.attached) continue
+      if (schema && doc.schema !== schema) continue
+      yield doc
+    }
+  }
+
+  public get bufnrs(): Iterable<number> {
+    return this.buffers.keys()
   }
 
   public detach(): void {
-    if (!this._attached) return
     this._attached = false
     for (let bufnr of this.buffers.keys()) {
       this.onBufUnload(bufnr)
     }
-    disposeAll(this.disposables)
+  }
+
+  public resolveRoot(rootPatterns: string[], requireRootPattern = false): string | undefined {
+    let doc = this.getDocument(this.bufnr)
+    let resolved: string | undefined
+    if (doc && doc.schema == 'file') {
+      let dir = path.dirname(URI.parse(doc.uri).fsPath)
+      resolved = resolveRoot(dir, rootPatterns, this.cwd)
+    } else {
+      resolved = resolveRoot(this.cwd, rootPatterns)
+    }
+    if (requireRootPattern && !resolved) {
+      throw new Error(`Required root pattern not resolved.`)
+    }
+    return resolved
   }
 
   public get textDocuments(): LinesTextDocument[] {
@@ -168,15 +186,16 @@ export default class Documents implements Disposable {
     return docs
   }
 
-  public getDocument(uri: number | string): Document | null {
+  public getDocument(uri: number | string, caseInsensitive = platform.isWindows || platform.isMacintosh): Document | null {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
-    const caseInsensitive = platform.isWindows || platform.isMacintosh
-    uri = URI.parse(uri).toString()
+    let u = URI.parse(uri)
+    uri = u.toString()
+    let isFile = u.scheme === 'file'
     for (let doc of this.buffers.values()) {
       if (doc.uri === uri) return doc
-      if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
+      if (isFile && caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
     }
     return null
   }
@@ -191,6 +210,7 @@ export default class Documents implements Disposable {
     if (input.includes('$')) {
       let doc = this.getDocument(this.bufnr)
       let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
+      const root = this._root || this._cwd
       input = input.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
         if (name.startsWith('env:')) {
           let key = name.split(':')[1]
@@ -198,12 +218,14 @@ export default class Documents implements Disposable {
           return val
         }
         switch (name) {
+          case 'userHome':
+            return os.homedir()
           case 'workspace':
           case 'workspaceRoot':
           case 'workspaceFolder':
-            return this._root
+            return root
           case 'workspaceFolderBasename':
-            return path.dirname(this._root)
+            return path.basename(root)
           case 'cwd':
             return this._cwd
           case 'file':
@@ -215,8 +237,8 @@ export default class Documents implements Disposable {
           case 'fileBasename':
             return fsPath ? path.basename(fsPath) : ''
           case 'fileBasenameNoExtension': {
-            let basename = fsPath ? path.basename(fsPath) : ''
-            return basename ? basename.slice(0, basename.length - path.extname(basename).length) : ''
+            let base = fsPath ? path.basename(fsPath) : ''
+            return base ? base.slice(0, base.length - path.extname(base).length) : ''
           }
           default:
             return match
@@ -240,8 +262,8 @@ export default class Documents implements Disposable {
       })
     }
     this._currentResolve = true
-    return new Promise<Document>((resolve, reject) => {
-      this.nvim.eval('coc#util#get_bufoptions(bufnr("%"))').then((opts: BufferOption) => {
+    return new Promise<Document>(resolve => {
+      this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`).then((opts: any) => {
         let doc: Document | undefined
         if (opts != null) {
           this.creating.delete(opts.bufnr)
@@ -250,7 +272,10 @@ export default class Documents implements Disposable {
         this.resolveCurrent(doc)
         resolve(doc)
         this._currentResolve = false
-      }, reject)
+      }, () => {
+        resolve(undefined)
+        this._currentResolve = false
+      })
     })
   }
 
@@ -277,10 +302,38 @@ export default class Documents implements Disposable {
    */
   public get filetypes(): Set<string> {
     let res = new Set<string>()
-    for (let doc of this.documents) {
+    for (let doc of this.attached()) {
       res.add(doc.filetype)
     }
     return res
+  }
+
+  /**
+   * Get filetype by check same extension name buffer.
+   */
+  public getLanguageId(filepath: string): string {
+    let ext = path.extname(filepath)
+    if (!ext) return ''
+    for (let doc of this.attached()) {
+      let fsPath = URI.parse(doc.uri).fsPath
+      if (path.extname(fsPath) == ext) {
+        return doc.languageId
+      }
+    }
+    return ''
+  }
+
+  public async getLines(uri: string): Promise<readonly string[]> {
+    let doc = this.getDocument(uri)
+    if (doc) return doc.textDocument.lines
+    let u = URI.parse(uri)
+    if (u.scheme !== 'file') return []
+    try {
+      let content = await readFile(u.fsPath, 'utf8')
+      return content.split(/\r?\n/)
+    } catch (e) {
+      return []
+    }
   }
 
   /**
@@ -288,7 +341,7 @@ export default class Documents implements Disposable {
    */
   public get languageIds(): Set<string> {
     let res = new Set<string>()
-    for (let doc of this.documents) {
+    for (let doc of this.attached()) {
       res.add(doc.languageId)
     }
     return res
@@ -317,7 +370,7 @@ export default class Documents implements Disposable {
     if (doc) return doc
     if (this.creating.has(bufnr)) return await this.creating.get(bufnr)
     let promise = new Promise<Document | undefined>(resolve => {
-      this.nvim.call('coc#util#get_bufoptions', [bufnr]).then(opts => {
+      this.nvim.call('coc#util#get_bufoptions', [bufnr, this.config.maxFileSize]).then(opts => {
         if (!this.creating.has(bufnr)) {
           resolve(undefined)
           return
@@ -327,7 +380,7 @@ export default class Documents implements Disposable {
           resolve(undefined)
           return
         }
-        doc = this._createDocument(opts)
+        doc = this._createDocument(opts as BufferOption)
         resolve(doc)
       }, () => {
         this.creating.delete(bufnr)
@@ -348,15 +401,14 @@ export default class Documents implements Disposable {
     if (this.buffers.has(bufnr)) return this.buffers.get(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
     let doc = new Document(buffer, this._env, this.nvim, opts)
+    if (opts.size > this.config.maxFileSize) logger.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`)
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
       if (doc.schema == 'file') {
-        let configfile = this.configurations.resolveFolderConfigution(doc.uri)
-        let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
-        if (bufnr == this._bufnr) {
-          if (configfile) this.configurations.setFolderConfiguration(doc.uri)
-          if (root) this._root = root
-        }
+        // TODO use workspaceFolder for root when exists
+        this.configurations.locateFolderConfigution(doc.uri)
+        let root = this.workspaceFolder.resolveRoot(doc, this._cwd, true, this.expand.bind(this))
+        if (root && bufnr == this._bufnr) this.changeRoot(root)
       }
       this._onDidOpenTextDocument.fire(doc.textDocument)
       doc.onDocumentChange(e => this._onDidChangeDocument.fire(e))
@@ -369,7 +421,6 @@ export default class Documents implements Disposable {
     this._bufnr = bufnr
     let doc = this.buffers.get(bufnr)
     if (doc) {
-      this.configurations.setFolderConfiguration(doc.uri)
       let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
       if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
     }
@@ -388,7 +439,7 @@ export default class Documents implements Disposable {
     }
   }
 
-  private detachBuffer(bufnr: number): void {
+  public detachBuffer(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     logger.debug('document detach', bufnr, doc.uri)
@@ -425,7 +476,6 @@ export default class Documents implements Disposable {
       reason: TextDocumentSaveReason.Manual,
       waitUntil: (thenable: Thenable<any>) => {
         if (!firing) {
-          logger.error(`Can't call waitUntil in async manner:`, Error().stack)
           this.nvim.echoError(`waitUntil can't be used in async manner, check log for details`)
         } else {
           thenables.push(thenable)
@@ -437,8 +487,7 @@ export default class Documents implements Disposable {
     let total = thenables.length
     if (total) {
       let promise = new Promise<TextEdit[] | undefined>(resolve => {
-        const preferences = this.configurations.getConfiguration('coc.preferences')
-        const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
+        const willSaveHandlerTimeout = this.config.willSaveHandlerTimeout
         let timer = setTimeout(() => {
           this.nvim.outWriteLine(`Will save handler timeout after ${willSaveHandlerTimeout}ms`)
           resolve(undefined)
@@ -480,7 +529,7 @@ export default class Documents implements Disposable {
     this._onDidOpenTextDocument.fire(doc.textDocument)
   }
 
-  public async getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>> {
+  public async getQuickfixList(locations: LocationWithTarget[]): Promise<ReadonlyArray<QuickfixItem>> {
     let filesLines: { [fsPath: string]: string[] } = {}
     let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
       let u = URI.parse(curr.uri)
@@ -491,11 +540,12 @@ export default class Documents implements Disposable {
     }, [])
 
     await Promise.all(filepathList.map(fsPath => {
-      return new Promise(resolve => {
-        fs.readFile(fsPath, 'utf8', (err, content) => {
-          if (err) return resolve(undefined)
+      return new Promise<void>(resolve => {
+        readFile(fsPath, 'utf8').then(content => {
           filesLines[fsPath] = content.split(/\r?\n/)
           resolve(undefined)
+        }, () => {
+          resolve()
         })
       })
     }))
@@ -510,9 +560,35 @@ export default class Documents implements Disposable {
   }
 
   /**
+   * Populate locations to UI.
+   */
+  public async showLocations(locations: LocationWithTarget[]): Promise<void> {
+    let { nvim } = this
+    let items = await this.getQuickfixList(locations)
+    if (this.config.useQuickfixForLocations) {
+      let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
+      if (typeof openCommand != 'string') {
+        openCommand = items.length < 10 ? `copen ${items.length}` : 'copen'
+      }
+      nvim.pauseNotification()
+      nvim.call('setqflist', [items], true)
+      nvim.command(openCommand, true)
+      nvim.resumeNotification(false, true)
+    } else {
+      await nvim.setVar('coc_jump_locations', items)
+      if (this._env.locationlist) {
+        nvim.command('CocList --normal --auto-preview location', true)
+      } else {
+        nvim.call('coc#util#do_autocmd', ['CocLocationsChange'], true)
+      }
+    }
+  }
+
+  /**
    * Convert location to quickfix item.
    */
-  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: LocationWithTarget | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
+    let targetRange = loc.targetRange
     if (LocationLink.is(loc)) {
       loc = Location.create(loc.targetUri, loc.targetRange)
     }
@@ -534,6 +610,7 @@ export default class Documents implements Disposable {
       text: text || '',
       range
     }
+    if (targetRange) item.targetRange = targetRange
     if (module) item.module = module
     if (type) item.type = type
     if (doc) item.bufnr = doc.bufnr
@@ -573,7 +650,11 @@ export default class Documents implements Disposable {
       this.onBufUnload(bufnr)
     }
     this.buffers.clear()
-    this._root = process.cwd()
+    this.changeRoot(process.cwd())
+  }
+
+  private changeRoot(dir: string): void {
+    this._root = normalizeFilePath(dir)
   }
 
   public dispose(): void {

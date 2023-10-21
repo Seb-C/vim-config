@@ -1,13 +1,12 @@
 'use strict'
-import watchman, { Client } from 'fb-watchman'
-import minimatch from 'minimatch'
-import os from 'os'
-import path from 'path'
+import type { Client } from 'fb-watchman'
 import { v1 as uuidv1 } from 'uuid'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { isParentFolder } from '../util/fs'
-const logger = require('../util/logger')('core-watchman')
+import { minimatch, os, path } from '../util/node'
+import { Disposable } from '../util/protocol'
+const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
 export interface WatchResponse {
@@ -46,6 +45,7 @@ export default class Watchman {
   private _disposed = false
 
   constructor(binaryPath: string, private channel?: OutputChannel) {
+    const watchman = require('fb-watchman')
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
@@ -90,7 +90,7 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string }> {
+  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string } | undefined> {
     let { watch, relative_path } = this
     if (!watch) throw new Error('watchman not watching')
     let { clock } = await this.command(['clock', watch])
@@ -105,6 +105,7 @@ export default class Watchman {
       sub.relative_root = relative_path
       root = path.join(watch, relative_path)
     }
+    if (!this.client) return
     let { subscribe } = await this.command(['subscribe', watch, uid, sub])
     this.appendOutput(`subscribing "${globPattern}" in ${root}`)
     this.client.on('subscription', resp => {
@@ -141,7 +142,6 @@ export default class Watchman {
     if (this._disposed) return
     this._disposed = true
     if (this.client) {
-      this.client.removeAllListeners()
       this.client.end()
       this.client = undefined
     }
@@ -153,8 +153,8 @@ export default class Watchman {
     }
   }
 
-  public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
-    if (!isValidWatchRoot(root)) return null
+  public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman> {
+    if (!isValidWatchRoot(root)) throw new Error(`Watch for ${root} is ignored`)
     let watchman: Watchman
     try {
       watchman = new Watchman(binaryPath, channel)
@@ -165,20 +165,17 @@ export default class Watchman {
       return watchman
     } catch (e) {
       if (watchman) watchman.dispose()
-      logger.error(`Error on watchman create`, e)
-      return null
+      throw e
     }
   }
 }
 
 /**
- * Exclude user's home, driver, tmpdir
+ * Exclude root, user's home, driver and tmpdir, but allow sub-directories under them.
  */
 export function isValidWatchRoot(root: string): boolean {
-  if (root == '/' || root == '/tmp' || root == '/private/tmp') return false
+  if (root == '/' || root == '/tmp' || root == '/private/tmp' || root == os.tmpdir()) return false
   if (isParentFolder(root, os.homedir(), true)) return false
   if (path.parse(root).base == root) return false
-  if (root.startsWith('/tmp/') || root.startsWith('/private/tmp/')) return false
-  if (isParentFolder(os.tmpdir(), root, true)) return false
   return true
 }

@@ -1,23 +1,24 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event, Location, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { Location, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { IConfigurationChangeEvent } from '../../configuration/types'
 import events from '../../events'
-import languages from '../../languages'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import languages, { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
+import { Disposable, Emitter, Event } from '../../util/protocol'
 import { emptyWorkspaceEdit } from '../../util/textedit'
 import workspace from '../../workspace'
+import { HandlerDelegate } from '../types'
 import RefactorBuffer, { FileItemDef, FileRangeDef, RefactorConfig, SEPARATOR } from './buffer'
 import Search from './search'
-const logger = require('../../util/logger')('handler-refactor')
 
 const name = '__coc_refactor__'
 let refactorId = 0
+let srcId: number
 
 export default class Refactor {
-  private srcId: number
   private buffers: Map<number, RefactorBuffer> = new Map()
   public config: RefactorConfig
   private disposables: Disposable[] = []
@@ -42,23 +43,17 @@ export default class Refactor {
     }, null, this.disposables)
   }
 
-  public async init(): Promise<void> {
-    if (workspace.isNvim && this.nvim.hasFunction('nvim_create_namespace')) {
-      this.srcId = await this.nvim.createNamespace('coc-refactor')
-    }
-  }
-
   public has(bufnr: number): boolean {
     return this.buffers.has(bufnr)
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (e && !e.affectsConfiguration('refactor')) return
-    let config = workspace.getConfiguration('refactor')
+    let config = workspace.getConfiguration('refactor', null)
     this.config = Object.assign(this.config || {}, {
       afterContext: config.get('afterContext', 3),
       beforeContext: config.get('beforeContext', 3),
-      openCommand: config.get('openCommand', 'edit'),
+      openCommand: config.get('openCommand', 'vsplit'),
       saveToFile: config.get('saveToFile', true),
       showMenu: config.get('showMenu', '<Tab>')
     })
@@ -69,7 +64,7 @@ export default class Refactor {
    */
   public async doRefactor(): Promise<void> {
     let { doc, position } = await this.handler.getCurrentState()
-    if (!languages.hasProvider('rename', doc.textDocument)) {
+    if (!languages.hasProvider(ProviderName.Rename, doc.textDocument)) {
       throw new Error(`Rename provider not found for current buffer`)
     }
     await doc.synchronize()
@@ -92,7 +87,7 @@ export default class Refactor {
    */
   public async search(args: string[]): Promise<void> {
     let buf = await this.createRefactorBuffer()
-    let cwd = await this.nvim.call('getcwd', [])
+    let cwd = await this.nvim.call('getcwd', []) as string
     let search = new Search(this.nvim)
     await search.run(args, cwd, buf)
   }
@@ -113,6 +108,7 @@ export default class Refactor {
     let { nvim } = this
     let [fromWinid, cwd] = await nvim.eval('[win_getid(),getcwd()]') as [number, string]
     let { openCommand } = this.config
+    if (!nvim.isVim && !srcId) srcId = await this.nvim.createNamespace('coc-refactor')
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${refactorId++}`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=2 concealcursor=n`, true)
@@ -129,7 +125,7 @@ export default class Refactor {
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
     let opts = { fromWinid, winid: win, cwd }
     await workspace.document
-    let buf = new RefactorBuffer(bufnr, conceal ? undefined : this.srcId, this.nvim, this.config, opts)
+    let buf = new RefactorBuffer(bufnr, conceal ? undefined : srcId, this.nvim, this.config, opts)
     this.buffers.set(bufnr, buf)
     return buf
   }

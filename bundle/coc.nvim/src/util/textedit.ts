@@ -1,9 +1,11 @@
 'use strict'
-import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
+import { isFalsyOrEmpty } from './array'
+import { toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
-import { byteLength, contentToLines } from './string'
+import { byteIndex, contentToLines, toText } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
 
@@ -39,7 +41,7 @@ export function getWellformedEdit(textEdit: TextEdit) {
   return textEdit
 }
 
-export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
+function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   if (data.length <= 1) {
     // sorted
     return data
@@ -71,6 +73,16 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   return data
 }
 
+export function mergeSortEdits(edits: TextEdit[]): TextEdit[] {
+  return mergeSort(edits, (a, b) => {
+    let diff = a.range.start.line - b.range.start.line
+    if (diff === 0) {
+      return a.range.start.character - b.range.start.character
+    }
+    return diff
+  })
+}
+
 export function emptyTextEdit(edit: TextEdit): boolean {
   return emptyRange(edit.range) && edit.newText.length === 0
 }
@@ -82,13 +94,61 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
   return true
 }
 
+export function getRangesFromEdit(uri: string, edit: WorkspaceEdit): Range[] | undefined {
+  let { changes, documentChanges } = edit
+  if (changes) {
+    let edits = changes[uri]
+    return edits ? edits.map(e => e.range) : undefined
+  } else if (Array.isArray(documentChanges)) {
+    for (let c of documentChanges) {
+      if (TextDocumentEdit.is(c) && c.textDocument.uri == uri) {
+        return c.edits.map(e => e.range)
+      }
+    }
+  }
+  return undefined
+}
+
 export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): ReadonlyArray<string> {
   let keys: string[] = []
-  for (let change of changes) {
-    let key = getAnnotationKey(change)
+  const add = (key: string | undefined) => {
     if (key && !keys.includes(key) && changeAnnotations[key]?.needsConfirmation) keys.push(key)
   }
+  for (let change of changes) {
+    if (TextDocumentEdit.is(change)) {
+      change.edits.forEach(edit => {
+        add(edit['annotationId'])
+      })
+    } else {
+      add(change.annotationId)
+    }
+  }
   return keys
+}
+
+export function isDeniedEdit(edit: TextEdit | AnnotatedTextEdit, denied: string[]): boolean {
+  if (AnnotatedTextEdit.is(edit) && denied.includes(edit.annotationId)) return true
+  return false
+}
+
+/**
+ * Create new changes with denied filtered
+ */
+export function createFilteredChanges(documentChanges: DocumentChange[], denied: string[]): DocumentChange[] {
+  let changes: DocumentChange[] = []
+  documentChanges.forEach(change => {
+    if (TextDocumentEdit.is(change)) {
+      let edits = change.edits.filter(edit => {
+        return !isDeniedEdit(edit, denied)
+      })
+      if (edits.length > 0) {
+        changes.push({ textDocument: change.textDocument, edits })
+      }
+    } else if (!denied.includes(change.annotationId)) {
+      changes.push(change)
+    }
+  })
+  return changes
 }
 
 export function getAnnotationKey(change: DocumentChange): string | undefined {
@@ -106,10 +166,8 @@ export function getAnnotationKey(change: DocumentChange): string | undefined {
 export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
   if (edit.documentChanges) return edit.documentChanges
   let changes: DocumentChange[] = []
-  if (edit.changes) {
-    for (let [uri, edits] of Object.entries(edit.changes)) {
-      changes.push({ textDocument: { uri, version: null }, edits })
-    }
+  for (let [uri, edits] of Object.entries(toObject(edit.changes))) {
+    changes.push({ textDocument: { uri, version: null }, edits })
   }
   return changes
 }
@@ -124,8 +182,9 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
   let prevDelete: Position | undefined
   for (let i = 0; i < edits.length; i++) {
     let edit = edits[i]
-    let { newText } = edit
-    let range = toValidRange(edit.range)
+    let { newText, range } = edit
+    let max = (textDocument.lines[range.end.line] ?? '').length
+    range = toValidRange(edit.range, max)
     if (prevDelete) {
       // merge possible delete, insert edits.
       if (samePosition(prevDelete, range.start) && emptyRange(range) && newText.length > 0) {
@@ -151,19 +210,14 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
       res.push({ range, newText })
     }
   }
-  return mergeSort(res, (a, b) => {
-    let diff = a.range.start.line - b.range.start.line
-    if (diff === 0) {
-      return a.range.start.character - b.range.start.character
-    }
-    return diff
-  })
+  return mergeSortEdits(res)
 }
 
 /**
  * Apply valid & sorted edits
  */
-export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): string[] | undefined {
+export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | undefined): string[] | undefined {
+  if (isFalsyOrEmpty(edits)) return undefined
   if (edits.length == 1) {
     let { start, end } = edits[0].range
     let { lines } = document
@@ -202,10 +256,10 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
   return edits.map(o => {
     let { start, end } = o.range
-    let sl = lines[start.line] ?? ''
-    let sc = byteLength(sl.slice(0, start.character))
-    let el = end.line == start.line ? sl : lines[end.line] ?? ''
-    let ec = byteLength(el.slice(0, end.character))
+    let sl = toText(lines[start.line])
+    let sc = byteIndex(sl, start.character)
+    let el = end.line == start.line ? sl : toText(lines[end.line])
+    let ec = byteIndex(el, end.character)
     let { newText } = o
     return [newText.length > 0 ? newText.split('\n') : [], start.line, sc, end.line, ec]
   })
@@ -298,7 +352,7 @@ export function mergeTextEdits(edits: TextEdit[], oldLines: ReadonlyArray<string
 
 function getText(start: Position, end: Position, lines: ReadonlyArray<string>): string {
   if (start.line === end.line) {
-    return (lines[start.line] ?? '').slice(start.character, end.character)
+    return toText(lines[start.line]).slice(start.character, end.character)
   }
   let spans: string[] = []
   for (let i = start.line; i <= end.line; i++) {

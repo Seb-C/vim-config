@@ -1,29 +1,30 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
-import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListItemWithHighlights, ListOptions, ListTask } from '../types'
+import { createLogger } from '../logger'
+import { FuzzyMatch } from '../model/fuzzyMatch'
+import { defaultValue } from '../util'
 import { parseAnsiHighlights } from '../util/ansiparse'
+import { toArray } from '../util/array'
 import { filter } from '../util/async'
 import { patchLine } from '../util/diff'
-import { hasMatch, positions, score } from '../util/fzy'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
-import { getMatchResult } from '../util/score'
-import { byteIndex, byteLength } from '../util/string'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
+import { bytes, smartcaseIndex, toText } from '../util/string'
+import workspace from '../workspace'
+import listConfiguration from './configuration'
 import Prompt from './prompt'
-const logger = require('../util/logger')('list-worker')
+import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from './types'
+const logger = createLogger('list-worker')
 const controlCode = '\x1b'
-
-export interface WorkerConfiguration {
-  interactiveDebounceTime: number
-  extendedSearchMode: boolean
-}
+const WHITE_SPACE_CHARS = [32, 9]
+const SERCH_HL_GROUP = 'CocListSearch'
 
 export interface FilterOption {
   append?: boolean
   reload?: boolean
 }
 
-export type OnFilter = (arr: ListItemWithHighlights[], finished: boolean, sort?: boolean) => void
+export type OnFilter = (arr: ListItem[], finished: boolean, sort?: boolean) => void
 
 // perform loading task
 export default class Worker {
@@ -36,16 +37,16 @@ export default class Worker {
   private filterTokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   private _onDidChangeLoading = new Emitter<boolean>()
+  private fuzzyMatch: FuzzyMatch
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
   public readonly onDidChangeLoading: Event<boolean> = this._onDidChangeLoading.event
 
   constructor(
-    private nvim: Neovim,
     private list: IList,
     private prompt: Prompt,
-    private listOptions: ListOptions,
-    private config: WorkerConfiguration
+    private listOptions: ListOptions
   ) {
+    this.fuzzyMatch = workspace.createFuzzyMatch()
   }
 
   private set loading(loading: boolean) {
@@ -75,17 +76,16 @@ export default class Worker {
       this.totalItems = items
       this.loading = false
       this._finished = true
-      let filtered: ListItemWithHighlights[]
+      let filtered: ListItem[]
       if (!interactive) {
-        let tokenSource = this.filterTokenSource = new CancellationTokenSource()
+        this.filterTokenSource = new CancellationTokenSource()
         await this.mutex.use(async () => {
-          let token = tokenSource.token
-          if (token.isCancellationRequested) return
           await this.filterItems(items as ListItem[], { reload }, token)
         })
       } else {
         filtered = this.convertToHighlightItems(items)
         this._onDidChangeItems.fire({
+          sorted: true,
           items: filtered,
           reload,
           finished: true
@@ -96,15 +96,13 @@ export default class Worker {
       let totalItems = this.totalItems = []
       let taken = 0
       let currInput = context.input
-      let filtering = false
       this.filterTokenSource = new CancellationTokenSource()
       let _onData = async (finished?: boolean) => {
-        filtering = true
         await this.mutex.use(async () => {
           let inputChanged = this.input != currInput
           if (inputChanged) {
             currInput = this.input
-            taken = this.filteredCount ?? 0
+            taken = defaultValue(this.filteredCount, 0)
           }
           if (taken >= totalItems.length) return
           let append = taken > 0
@@ -112,58 +110,51 @@ export default class Worker {
           taken = totalItems.length
           if (!interactive) {
             let tokenSource = this.filterTokenSource
-            if (tokenSource && !tokenSource.token.isCancellationRequested) {
-              await this.filterItems(remain, { append, reload }, tokenSource.token)
-            }
+            await this.filterItems(remain, { append, reload }, tokenSource.token)
           } else {
             let items = this.convertToHighlightItems(remain)
-            this._onDidChangeItems.fire({ items, append, reload, finished })
+            this._onDidChangeItems.fire({ items, append, reload, sorted: true, finished })
           }
         })
-        filtering = false
       }
-      let promise: Promise<void> = Promise.resolve()
-      let interval = setInterval(() => {
-        if (filtering) return
-        promise = _onData()
+      let interval = setInterval(async () => {
+        await _onData()
       }, 50)
       task.on('data', item => {
-        if (token.isCancellationRequested) return
         totalItems.push(item)
       })
-      let onEnd = () => {
+      let onEnd = async () => {
         if (task == null) return
+        clearInterval(interval)
         this.tokenSource = null
         task = null
         this.loading = false
         this._finished = true
         disposable.dispose()
-        clearInterval(interval)
-        promise.then(() => {
-          if (token.isCancellationRequested) return
-          if (totalItems.length == 0) {
-            this._onDidChangeItems.fire({ items: [], append: false, reload, finished: true })
-            return
-          }
-          return _onData(true)
-        }).catch(e => {
-          logger.error('Error on filter', e)
-        })
+        if (token.isCancellationRequested) return
+        if (totalItems.length == 0) {
+          this._onDidChangeItems.fire({ items: [], append: false, sorted: true, reload, finished: true })
+          return
+        }
+        await _onData(true)
       }
       let disposable = token.onCancellationRequested(() => {
+        this.mutex.reset()
         task?.dispose()
-        onEnd()
+        void onEnd()
       })
+      let toDispose = task
       task.on('error', async (error: Error | string) => {
         if (task == null) return
         task = null
+        toDispose.dispose()
         this.tokenSource = null
         this.loading = false
         disposable.dispose()
         clearInterval(interval)
-        this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
-        this.nvim.echoError(`Task error: ${error.toString()}`)
-        logger.error('Task error:', error)
+        workspace.nvim.call('coc#prompt#stop_prompt', ['list'], true)
+        workspace.nvim.echoError(`Task error: ${error.toString()}`)
+        logger.error('List task error:', error)
       })
       task.on('end', onEnd)
     }
@@ -213,88 +204,100 @@ export default class Worker {
   /**
    * Add highlights for interactive list
    */
-  private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
-    let input = this.input ?? ''
+  private convertToHighlightItems(items: ListItem[]): ListItem[] {
+    let input = toText(this.input)
+    if (input.length > 0) this.fuzzyMatch.setPattern(input)
     let res = items.map(item => {
-      this.convertItemLabel(item)
-      let highlights = input.length > 0 ? getItemHighlights(input, item) : undefined
-      return Object.assign({}, item, { highlights })
+      convertItemLabel(item)
+      let search = input.length > 0 && item.filterText !== ''
+      if (search) {
+        let filterLabel = getFilterLabel(item)
+        let results = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
+        item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
+        if (results) item.ansiHighlights.push(...results.highlights)
+      }
+      return item
     })
+    this.fuzzyMatch.free()
     return res
   }
 
-  private async filterItemsByInclude(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+  private async filterItemsByInclude(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { ignorecase } = this.listOptions
+    const smartcase = listConfiguration.smartcase
+    let inputs = toInputs(input, listConfiguration.extendedSearchMode)
     if (ignorecase) inputs = inputs.map(s => s.toLowerCase())
     await filter(items, item => {
-      this.convertItemLabel(item)
+      convertItemLabel(item)
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
-      let match = true
+      let byteIndex = bytes(filterLabel)
+      let curr = 0
+      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SERCH_HL_GROUP)
       for (let input of inputs) {
-        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input) : filterLabel.indexOf(input)
-        if (idx == -1) {
-          match = false
-          break
-        }
-        spans.push([byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + byteLength(input))])
+        let label = filterLabel.slice(curr)
+        let idx = indexOf(label, input, smartcase, ignorecase)
+        if (idx === -1) break
+        let end = idx + curr + input.length
+        spans.push([byteIndex(idx + curr), byteIndex(end)])
+        curr = end
       }
-      if (!match) return false
-      return { highlights: { spans } }
+      if (spans.length !== inputs.length) return false
+      item.ansiHighlights.push(...spans.map(s => {
+        return { span: s, hlGroup: SERCH_HL_GROUP }
+      }))
+      return true
     }, onFilter, token)
   }
 
-  private async filterItemsByRegex(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+  private async filterItemsByRegex(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { ignorecase } = this.listOptions
     let flags = ignorecase ? 'iu' : 'u'
+    let inputs = toInputs(input, listConfiguration.extendedSearchMode)
     let regexes = inputs.reduce((p, c) => {
-      try {
-        p.push(new RegExp(c, flags))
-      } catch (e) {}
+      try { p.push(new RegExp(c, flags)) } catch (e) {}
       return p
     }, [])
     await filter(items, item => {
-      this.convertItemLabel(item)
+      convertItemLabel(item)
+      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SERCH_HL_GROUP)
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
-      let match = true
+      let byteIndex = bytes(filterLabel)
+      let curr = 0
       for (let regex of regexes) {
-        let ms = filterLabel.match(regex)
-        if (ms == null) {
-          match = false
-          break
-        }
-        spans.push([byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + byteLength(ms[0]))])
+        let ms = filterLabel.slice(curr).match(regex)
+        if (ms == null) break
+        let end = ms.index + curr + ms[0].length
+        spans.push([byteIndex(ms.index + curr), byteIndex(end)])
+        curr = end
       }
-      if (!match) return false
-      return { highlights: { spans } }
+      if (spans.length !== inputs.length) return false
+      item.ansiHighlights.push(...spans.map(s => {
+        return { span: s, hlGroup: SERCH_HL_GROUP }
+      }))
+      return true
     }, onFilter, token)
   }
 
-  private async filterItemsByFuzzyMatch(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+  private async filterItemsByFuzzyMatch(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+    let { extendedSearchMode, smartcase } = listConfiguration
     let { sort } = this.listOptions
     let idx = 0
+    this.fuzzyMatch.setPattern(input, !extendedSearchMode)
+    let codes = getCharCodes(input)
+    if (extendedSearchMode) codes = codes.filter(c => !WHITE_SPACE_CHARS.includes(c))
     await filter(items, item => {
-      this.convertItemLabel(item)
-      let filterText = item.filterText || item.label
-      let matchScore = 0
-      let matches: number[] = []
+      convertItemLabel(item)
       let filterLabel = getFilterLabel(item)
-      let match = true
-      for (let input of inputs) {
-        if (!hasMatch(input, filterText)) {
-          match = false
-          break
-        }
-        matches.push(...positions(input, filterLabel))
-        if (sort) matchScore += score(input, filterText)
-      }
-      idx = idx + 1
-      if (!match) return false
+      let match = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
+      if (!match || (smartcase && !fuzzyMatch(codes, filterLabel))) return false
+      let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SERCH_HL_GROUP) : []
+      ansiHighlights.push(...match.highlights)
       return {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
-        score: matchScore,
-        highlights: getHighlights(filterLabel, matches)
+        score: match.score,
+        ansiHighlights
       }
     }, (items, done) => {
       onFilter(items, done, sort)
@@ -305,53 +308,35 @@ export default class Worker {
     let { input } = this
     if (input.length === 0) {
       let items = arr.map(item => {
-        return this.convertItemLabel(item)
+        return convertItemLabel(item)
       })
-      this._onDidChangeItems.fire({ items, finished: this._finished, ...opts })
+      this._onDidChangeItems.fire({ items, sorted: true, finished: this._finished, ...opts })
       return
     }
-    let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
     let called = false
-    const onFilter = (items: ListItemWithHighlights[], finished: boolean, sort?: boolean) => {
-      finished = finished && this._finished
+    let itemsToSort: ListItemWithScore[] = []
+    const onFilter = (items: ListItemWithScore[], done: boolean, sort?: boolean) => {
+      let finished = done && this._finished
       if (token.isCancellationRequested || (!finished && items.length == 0)) return
       if (sort) {
-        items.sort((a, b) => {
-          if (a.score != b.score) return b.score - a.score
-          if (a.sortText > b.sortText) return 1
-          return -1
-        })
+        itemsToSort.push(...items)
+        if (done) this._onDidChangeItems.fire({ items: itemsToSort, append: false, sorted: false, reload: opts.reload, finished })
+      } else {
+        let append = opts.append === true || called
+        called = true
+        this._onDidChangeItems.fire({ items, append, sorted: true, reload: opts.reload, finished })
       }
-      let append = opts.append === true || called
-      called = true
-      this._onDidChangeItems.fire({ items, append, reload: opts.reload, finished })
     }
     switch (this.listOptions.matcher) {
       case 'strict':
-        await this.filterItemsByInclude(inputs, arr, token, onFilter)
+        await this.filterItemsByInclude(input, arr, token, onFilter)
         break
       case 'regex':
-        await this.filterItemsByRegex(inputs, arr, token, onFilter)
+        await this.filterItemsByRegex(input, arr, token, onFilter)
         break
       default:
-        await this.filterItemsByFuzzyMatch(inputs, arr, token, onFilter)
+        await this.filterItemsByFuzzyMatch(input, arr, token, onFilter)
     }
-  }
-
-  // set correct label, add ansi highlights
-  private convertItemLabel(item: ListItem): ListItem {
-    let { label, converted } = item
-    if (converted) return item
-    if (label.includes('\n')) {
-      label = item.label = label.replace(/\r?\n/g, ' ')
-    }
-    if (label.includes(controlCode)) {
-      let { line, highlights } = parseAnsiHighlights(label)
-      item.label = line
-      if (!Array.isArray(item.ansiHighlights)) item.ansiHighlights = highlights
-    }
-    item.converted = true
-    return item
   }
 
   public dispose(): void {
@@ -361,6 +346,30 @@ export default class Worker {
 
 function getFilterLabel(item: ListItem): string {
   return item.filterText != null ? patchLine(item.filterText, item.label) : item.label
+}
+
+export function toInputs(input: string, extendedSearchMode: boolean): string[] {
+  return extendedSearchMode ? parseInput(input) : [input]
+}
+
+export function convertItemLabel(item: ListItem): ListItem {
+  let { label, converted } = item
+  if (converted) return item
+  if (label.includes('\n')) {
+    label = item.label = label.replace(/\r?\n.*/gm, '')
+  }
+  if (label.includes(controlCode)) {
+    let { line, highlights } = parseAnsiHighlights(label)
+    item.label = line
+    if (!Array.isArray(item.ansiHighlights)) item.ansiHighlights = highlights
+  }
+  item.converted = true
+  return item
+}
+
+export function indexOf(label: string, input: string, smartcase: boolean, ignorecase: boolean): number {
+  if (smartcase) return smartcaseIndex(input, label)
+  return ignorecase ? label.toLowerCase().indexOf(input.toLowerCase()) : label.indexOf(input)
 }
 
 /**
@@ -374,7 +383,7 @@ export function parseInput(input: string): string[] {
   let prev = ''
   for (; currIdx < input.length; currIdx++) {
     let ch = input[currIdx]
-    if (ch.charCodeAt(0) === 32) {
+    if (WHITE_SPACE_CHARS.includes(ch.charCodeAt(0))) {
       // find space
       if (prev && prev != '\\' && startIdx != currIdx) {
         res.push(input.slice(startIdx, currIdx))
@@ -388,33 +397,4 @@ export function parseInput(input: string): string[] {
     res.push(input.slice(startIdx, input.length))
   }
   return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0)
-}
-
-export function getHighlights(text: string, matches?: number[]): ListHighlights {
-  let spans: [number, number][] = []
-  if (matches && matches.length) {
-    let start = matches.shift()
-    let next = matches.shift()
-    let curr = start
-    while (next) {
-      if (next == curr + 1) {
-        curr = next
-        next = matches.shift()
-        continue
-      }
-      spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
-      start = next
-      curr = start
-      next = matches.shift()
-    }
-    spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
-  }
-  return { spans }
-}
-
-export function getItemHighlights(input: string, item: ListItem): ListHighlights {
-  let filterLabel = getFilterLabel(item)
-  let res = getMatchResult(filterLabel, input)
-  if (!res?.score) return { spans: [] }
-  return getHighlights(filterLabel, res.matches)
 }

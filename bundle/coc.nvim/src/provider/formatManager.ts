@@ -1,29 +1,20 @@
 'use strict'
-import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, TextEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
-import { DocumentFormattingEditProvider } from './index'
-import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { FormattingOptions, TextEdit } from 'vscode-languageserver-types'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentFormattingEditProvider, DocumentSelector } from './index'
+import Manager from './manager'
 
 export default class FormatManager extends Manager<DocumentFormattingEditProvider> {
 
-  public register(selector: DocumentSelector,
-    provider: DocumentFormattingEditProvider,
-    priority = 0): Disposable {
-    let item: ProviderItem<DocumentFormattingEditProvider> = {
+  public register(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority: number): Disposable {
+    return this.addProvider({
       id: uuid(),
       selector,
       priority,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
-  }
-
-  public handles(doc: TextDocument): boolean {
-    return this.getProvider(doc) != null
   }
 
   public async provideDocumentFormattingEdits(

@@ -1,15 +1,21 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { CancellationTokenSource, CodeLens, Command } from 'vscode-languageserver-protocol'
-import { SyncItem } from '../../model/bufferSync'
+import type { Neovim } from '@chemzqm/neovim'
+import { CodeLens, Command } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
+import { createLogger } from '../../logger'
+import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
+import { DidChangeTextDocumentParams } from '../../types'
+import { defaultValue, getConditionValue } from '../../util'
+import { isFalsyOrEmpty } from '../../util/array'
+import { isCommand } from '../../util/is'
+import { debounce } from '../../util/node'
+import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
-import { DidChangeTextDocumentParams } from '../../types'
-const logger = require('../../util/logger')('codelens-buffer')
+import { handleError } from '../util'
+const logger = createLogger('codelens-buffer')
 
 export interface CodeLensInfo {
   codeLenses: CodeLens[]
@@ -21,38 +27,82 @@ export interface CodeLensConfig {
   enabled: boolean
   separator: string
   subseparator: string
-  srcId?: number
 }
+
+export enum TextAlign {
+  After = 'after',
+  Right = 'right',
+  Below = 'below',
+  Above = 'above',
+}
+
+let srcId: number | undefined
+const debounceTime = getConditionValue(200, 20)
+const CODELENS_HL = 'CocCodeLens'
+const NORMAL_HL = 'Normal'
 
 /**
  * CodeLens buffer
  */
 export default class CodeLensBuffer implements SyncItem {
-  private codeLenses: CodeLensInfo
+  private codeLenses: CodeLensInfo | undefined
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
+  private _config: CodeLensConfig | undefined
+  private display = true
   public resolveCodeLens: (() => void) & { clear(): void }
+  public debounceFetch: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
-    public readonly document: Document,
-    private config: CodeLensConfig
+    public readonly document: Document
   ) {
     this.resolveCodeLens = debounce(() => {
-      void this._resolveCodeLenses()
-    }, global.__TEST__ ? 20 : 200)
-    void this.fetchCodeLenses()
+      this._resolveCodeLenses().catch(handleError)
+    }, debounceTime)
+    this.debounceFetch = debounce(() => {
+      this.fetchCodeLenses().catch(handleError)
+    }, debounceTime)
+    if (this.hasProvider) this.debounceFetch()
   }
 
-  private get bufnr(): number {
+  public get config(): CodeLensConfig {
+    if (this._config) return this._config
+    this.loadConfiguration()
+    return this._config
+  }
+
+  public loadConfiguration(): void {
+    let config = workspace.getConfiguration('codeLens', this.document)
+    this._config = {
+      enabled: config.get<boolean>('enable', false),
+      position: config.get<'top' | 'eol' | 'right_align'>('position', 'top'),
+      separator: config.get<string>('separator', ''),
+      subseparator: config.get<string>('subseparator', ' ')
+    }
+  }
+
+  public async toggleDisplay(): Promise<void> {
+    if (this.display) {
+      this.display = false
+      this.clear()
+    } else {
+      this.display = true
+      this.resolveCodeLens.clear()
+      await this._resolveCodeLenses()
+    }
+  }
+
+  public get bufnr(): number {
     return this.document.bufnr
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
     if (e.contentChanges.length === 0 && this.codeLenses != null) {
-      void this._resolveCodeLenses()
+      this.resolveCodeLens.clear()
+      this._resolveCodeLenses().catch(handleError)
     } else {
       this.cancel()
-      void this.fetchCodeLenses()
+      this.debounceFetch()
     }
   }
 
@@ -60,33 +110,40 @@ export default class CodeLensBuffer implements SyncItem {
     return this.codeLenses?.codeLenses
   }
 
-  private get enabled(): boolean {
-    if (!this.document?.attached) return false
-    return this.config.enabled && languages.hasProvider('codeLens', this.document.textDocument)
+  private get hasProvider(): boolean {
+    return languages.hasProvider(ProviderName.CodeLens, this.document)
   }
 
   public async forceFetch(): Promise<void> {
-    if (!this.enabled) return
+    if (!this.config.enabled || !this.hasProvider) return
     await this.document.synchronize()
     this.cancel()
     await this.fetchCodeLenses()
   }
 
-  private async fetchCodeLenses(): Promise<void> {
-    if (!this.enabled) return
-    this.cancel()
+  public async fetchCodeLenses(): Promise<void> {
+    if (!this.hasProvider || !this.config.enabled) return
     let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {
+      let empty = this.codeLenses == null
       let { textDocument } = this.document
       let version = textDocument.version
+      this.cancelFetch()
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
+      if (!srcId) srcId = await this.nvim.createNamespace('coc-codelens')
       let codeLenses = await languages.getCodeLens(textDocument, token)
-      codeLenses = Array.isArray(codeLenses) ? codeLenses.filter(o => o != null) : []
-      this.tokenSource = undefined
-      if (token.isCancellationRequested || codeLenses.length == 0) return
+      if (token.isCancellationRequested) return
+      codeLenses = defaultValue(codeLenses, [])
+      codeLenses = codeLenses.filter(o => o != null)
+      if (isFalsyOrEmpty(codeLenses)) {
+        this.clear()
+        return
+      }
       this.codeLenses = { version, codeLenses }
+      if (empty) this.setVirtualText(codeLenses)
     }
+    this.resolveCodeLens.clear()
     await this._resolveCodeLenses()
   }
 
@@ -94,12 +151,12 @@ export default class CodeLensBuffer implements SyncItem {
    * Resolve visible codeLens
    */
   private async _resolveCodeLenses(): Promise<void> {
-    if (!this.enabled || !this.codeLenses || this.isChanged) return
+    if (!this.codeLenses || this.isChanged) return
     let { codeLenses } = this.codeLenses
-    let [bufnr, start, end] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$')]`) as [number, number, number]
+    let [bufnr, start, end, total] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$'),line('$')]`) as [number, number, number, number]
     // only resolve current buffer
     if (this.isChanged || bufnr != this.bufnr) return
-    if (this.resolveTokenSource) this.resolveTokenSource.cancel()
+    this.cancel()
     codeLenses = codeLenses.filter(o => {
       let lnum = o.range.start.line + 1
       return lnum >= start && lnum <= end
@@ -107,14 +164,20 @@ export default class CodeLensBuffer implements SyncItem {
     if (codeLenses.length) {
       let tokenSource = this.resolveTokenSource = new CancellationTokenSource()
       let token = tokenSource.token
-      await Promise.all(codeLenses.map(codeLens => languages.resolveCodeLens(codeLens, token)))
+      await Promise.all(codeLenses.map(codeLens => {
+        if (isCommand(codeLens.command)) return Promise.resolve()
+        codeLens.command = undefined
+        return languages.resolveCodeLens(codeLens, token)
+      }))
       this.resolveTokenSource = undefined
       if (token.isCancellationRequested || this.isChanged) return
     }
+    // nvim could have extmarks exceeded last line.
+    if (end == total) end = -1
     this.nvim.pauseNotification()
     this.clear(start - 1, end)
     this.setVirtualText(codeLenses)
-    this.nvim.resumeNotification(false, true)
+    this.nvim.resumeNotification(true, true)
   }
 
   private get isChanged(): boolean {
@@ -128,61 +191,46 @@ export default class CodeLensBuffer implements SyncItem {
    */
   private setVirtualText(codeLenses: CodeLens[]): void {
     let { document } = this
-    if (!document || !codeLenses.length) return
+    if (!srcId || !document || !codeLenses.length || !this.display) return
+    let top = this.config.position === 'top'
     let list: Map<number, CodeLens[]> = new Map()
-    let { position } = this.config
     for (let codeLens of codeLenses) {
-      let { range, command } = codeLens
-      if (!command) continue
-      let { line } = range.start
-      if (list.has(line)) {
-        list.get(line).push(codeLens)
-      } else {
-        list.set(line, [codeLens])
-      }
+      let { line } = codeLens.range.start
+      let curr = list.get(line) ?? []
+      curr.push(codeLens)
+      list.set(line, curr)
     }
     for (let lnum of list.keys()) {
       let codeLenses = list.get(lnum)
-      let commands = codeLenses.map(codeLens => codeLens.command)
-      commands = commands.filter(c => c && c.title)
+      let commands = codeLenses.reduce((p, c) => {
+        if (c && c.command && c.command.title) p.push(c.command.title.replace(/\s+/g, ' '))
+        return p
+      }, [] as string[])
       let chunks: [string, string][] = []
-      let n_commands = commands.length
-      for (let i = 0; i < n_commands; i++) {
-        let c = commands[i]
-        chunks.push([c.title.replace(/(\r\n|\r|\n|\s)+/g, " "), 'CocCodeLens'] as [string, string])
-        if (i != n_commands - 1) {
-          chunks.push([this.config.subseparator, 'CocCodeLens'] as [string, string])
+      let len = commands.length
+      for (let i = 0; i < len; i++) {
+        let title = commands[i]
+        chunks.push([title, CODELENS_HL] as [string, string])
+        if (i != len - 1) {
+          chunks.push([this.config.subseparator, CODELENS_HL] as [string, string])
         }
       }
-      if (this.config.separator) {
-        chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
+      if (chunks.length > 0 && this.config.separator) {
+        chunks.unshift([`${this.config.separator} `, CODELENS_HL])
       }
-      let { srcId } = this.config
-      if (workspace.has('nvim-0.6.0')) {
-        let buf = this.document.buffer
-        let line = document.getline(lnum)
-        if (position == 'top') {
-          let indent = line.match(/^\s*/)[0]
-          if (indent.length > 0) chunks.unshift([indent, 'Normal'])
-          buf.setExtMark(srcId, lnum, 0, {
-            virt_lines: [chunks],
-            virt_lines_above: true
-          })
-        } else {
-          buf.setExtMark(srcId, lnum, 0, {
-            hl_mode: 'combine',
-            virt_text: chunks,
-            virt_text_pos: position
-          })
-        }
-      } else {
-        this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, srcId, lnum, chunks, {}], true)
+      if (top && chunks.length == 0) {
+        chunks.push([' ', NORMAL_HL])
+      }
+      if (chunks.length > 0) {
+        document.buffer.setVirtualText(srcId, lnum, chunks, {
+          text_align: getTextAlign(this.config.position),
+          indent: true
+        })
       }
     }
   }
 
   public clear(start = 0, end = -1): void {
-    let { srcId } = this.config
     if (!srcId) return
     let buf = this.nvim.createBuffer(this.bufnr)
     buf.clearNamespace(srcId, start, end)
@@ -198,18 +246,29 @@ export default class CodeLensBuffer implements SyncItem {
     }
   }
 
-  private cancel(): void {
-    this.resolveCodeLens.clear()
-    if (this.resolveTokenSource) {
-      this.resolveTokenSource.cancel()
-      this.resolveTokenSource.dispose()
-      this.resolveTokenSource = null
-    }
+  private cancelFetch(): void {
+    this.debounceFetch.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
-      this.tokenSource.dispose()
       this.tokenSource = null
     }
+  }
+
+  private cancelResolve(): void {
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource = null
+    }
+  }
+
+  private cancel(): void {
+    this.resolveCodeLens.clear()
+    this.cancelResolve()
+    this.cancelFetch()
+  }
+
+  public abandonResult(): void {
+    this.codeLenses = undefined
   }
 
   public dispose(): void {
@@ -218,12 +277,19 @@ export default class CodeLensBuffer implements SyncItem {
   }
 }
 
+export function getTextAlign(position: 'top' | 'eol' | 'right_align'): TextAlign {
+  if (position == 'top') return TextAlign.Above
+  if (position == 'eol') return TextAlign.After
+  if (position === 'right_align') return TextAlign.Right
+  return TextAlign.Above
+}
+
 export function getCommands(line: number, codeLenses: CodeLens[] | undefined): Command[] {
   if (!codeLenses?.length) return []
   let commands: Command[] = []
   for (let codeLens of codeLenses) {
     let { range, command } = codeLens
-    if (!command) continue
+    if (!isCommand(command)) continue
     if (line == range.start.line) {
       commands.push(command)
     }

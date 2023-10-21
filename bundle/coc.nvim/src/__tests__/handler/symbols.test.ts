@@ -1,11 +1,12 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable, SymbolInformation, SymbolKind, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
-import workspace from '../../workspace'
-import window from '../../window'
-import events from '../../events'
+import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
 import helper from '../helper'
 import Parser from './parser'
 
@@ -64,10 +65,11 @@ describe('symbols handler', () => {
 
   describe('configuration', () => {
     it('should get configuration', async () => {
-      let functionUpdate = symbols.functionUpdate
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      let functionUpdate = symbols.autoUpdate(bufnr)
       expect(functionUpdate).toBe(false)
       helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
-      functionUpdate = symbols.functionUpdate
+      functionUpdate = symbols.autoUpdate(bufnr)
       expect(functionUpdate).toBe(true)
     })
 
@@ -78,18 +80,34 @@ describe('symbols handler', () => {
       }
     }`
       let buf = await createBuffer(code)
-      await nvim.call('cursor', [2, 8])
-      await events.fire('CursorHold', [buf.id])
-      let val = await buf.getVar('coc_current_function')
-      expect(val).toBe('fun1')
-      await nvim.call('cursor', [1, 8])
-      await events.fire('CursorHold', [buf.id])
-      val = await buf.getVar('coc_current_function')
-      expect(val).toBe('myClass')
+      await events.fire('CursorMoved', [buf.id, [2, 8]])
+      await helper.waitFor('eval', ['b:coc_current_function'], 'fun1')
+      await events.fire('CursorMoved', [buf.id, [1, 8]])
+      await helper.waitFor('eval', ['b:coc_current_function'], 'myClass')
     })
   })
 
   describe('documentSymbols', () => {
+    it('should create document symbol tree', () => {
+      let uri = 'lsp:/1'
+      let symbols = [
+        SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), uri),
+        SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 3, 0, 7), uri, 'root'),
+        SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), uri, 'root'),
+      ]
+      let res = asDocumentSymbolTree(symbols)
+      expect(res.length).toBe(2)
+    })
+
+    it('should get empty metadata when provider not found', async () => {
+      disposeAll(disposables)
+      let doc = await workspace.document
+      let res = languages.getDocumentSymbolMetadata(doc.textDocument)
+      expect(res).toBeNull()
+      let symbols = await languages.getDocumentSymbol(doc.textDocument, CancellationToken.None)
+      expect(symbols).toBeNull()
+    })
+
     it('should get symbols of current buffer', async () => {
       let code = `class detail {
       fun1() { }
@@ -133,18 +151,23 @@ describe('symbols handler', () => {
 
     it('should support SymbolInformation', async () => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
-        provideDocumentSymbols: () => {
+        provideDocumentSymbols: doc => {
+          let s = SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), doc.uri)
+          s.deprecated = true
           return [
-            SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10)),
-            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
+            s,
+            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 3, 0, 7), doc.uri, 'root'),
+            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), doc.uri, 'root')
           ]
         }
-      }))
+      }, { label: 'test' }))
       await helper.createDocument()
       let res = await symbols.getDocumentSymbols()
-      expect(res.length).toBe(2)
+      expect(res.length).toBe(3)
       expect(res[0].text).toBe('root')
-      expect(res[1].text).toBe('child')
+      await nvim.command('edit +setl\\ buftype=nofile b')
+      res = await symbols.getDocumentSymbols()
+      expect(res).toBeUndefined()
     })
   })
 
@@ -183,7 +206,7 @@ describe('symbols handler', () => {
         let foo;
       }
 }`
-      let buf = await createBuffer(code)
+      await createBuffer(code)
       await nvim.call('cursor', [3, 3])
       await symbols.selectSymbolRange(true, '', ['Method'])
       let mode = await nvim.mode
@@ -258,7 +281,7 @@ describe('symbols handler', () => {
     it('should get workspace symbols', async () => {
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
-          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0))]
+          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
         },
         resolveWorkspaceSymbol: sym => {
           let res = Object.assign({}, sym)
@@ -266,15 +289,27 @@ describe('symbols handler', () => {
           return res
         }
       }))
-      disposables.push(languages.registerWorkspaceSymbolProvider({
+      let fn: any = languages.registerWorkspaceSymbolProvider.bind(languages)
+      disposables.push(fn('vim', {
         provideWorkspaceSymbols: (_query, _token) => {
-          return [SymbolInformation.create('bar', SymbolKind.Function, Range.create(0, 0, 0, 0))]
+          return null
         }
       }))
       let res = await symbols.getWorkspaceSymbols('a')
-      expect(res.length).toBe(2)
-      let resolved = await symbols.resolveWorkspaceSymbol(res[0])
+      expect(res.length).toBe(1)
+      let resolved = await helper.doAction('resolveWorkspaceSymbol', res[0])
       expect(resolved?.location?.uri).toBe('test:///foo')
+    })
+
+    it('should return symbol when resolve failed', async () => {
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: (_query, _token) => {
+          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
+        }
+      }))
+      let res = await helper.doAction('getWorkspaceSymbols')
+      let resolved = await symbols.resolveWorkspaceSymbol(res[0])
+      expect(resolved).toBeDefined()
     })
   })
 })

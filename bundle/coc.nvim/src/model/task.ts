@@ -1,8 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
+import { Disposable, Emitter, Event } from '../util/protocol'
 
 export interface TaskOptions {
   cmd: string
@@ -58,7 +58,7 @@ export default class Task implements Disposable {
    */
   public async start(opts: TaskOptions): Promise<boolean> {
     let { nvim } = this
-    return await nvim.call('coc#task#start', [this.id, opts])
+    return await nvim.call('coc#task#start', [this.id, opts]) as boolean
   }
 
   /**
@@ -74,7 +74,7 @@ export default class Task implements Disposable {
    */
   public get running(): Promise<boolean> {
     let { nvim } = this
-    return nvim.call('coc#task#running', [this.id])
+    return nvim.call('coc#task#running', [this.id]) as Promise<boolean>
   }
 
   /**

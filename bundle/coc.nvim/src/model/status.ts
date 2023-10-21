@@ -1,8 +1,7 @@
 'use strict'
-import { Disposable } from 'vscode-languageserver-protocol'
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import type { Disposable } from '../util/protocol'
 import { v1 as uuidv1 } from 'uuid'
-const logger = require('../util/logger')('model-status')
+import { Neovim } from '@chemzqm/neovim'
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
@@ -24,10 +23,11 @@ export default class StatusLine implements Disposable {
   private shownIds: Set<string> = new Set()
   private _text = ''
   private interval: NodeJS.Timer
-  constructor(private nvim: Neovim) {
+  public nvim: Neovim
+  constructor() {
     this.interval = setInterval(() => {
       this.setStatusText()
-    }, 100)
+    }, 100).unref()
   }
 
   public dispose(): void {
@@ -36,7 +36,12 @@ export default class StatusLine implements Disposable {
     clearInterval(this.interval)
   }
 
-  public createStatusBarItem(priority = 0, isProgress = false): StatusBarItem {
+  public reset(): void {
+    this.items.clear()
+    this.shownIds.clear()
+  }
+
+  public createStatusBarItem(priority: number, isProgress = false): StatusBarItem {
     let uid = uuidv1()
 
     let item: StatusBarItem = {
@@ -86,7 +91,7 @@ export default class StatusLine implements Disposable {
   private setStatusText(): void {
     let text = this.getText()
     let { nvim } = this
-    if (text != this._text) {
+    if (text != this._text && nvim) {
       this._text = text
       nvim.pauseNotification()
       this.nvim.setVar('coc_status', text, true)

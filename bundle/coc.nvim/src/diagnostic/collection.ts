@@ -1,10 +1,10 @@
 'use strict'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import workspace from '../workspace'
 import { intersect } from '../util/array'
-const logger = require('../util/logger')('diagnostic-collection')
-const knownTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
+import { Emitter, Event } from '../util/protocol'
+import workspace from '../workspace'
+const HintTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
 
 export default class DiagnosticCollection {
   private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
@@ -43,10 +43,10 @@ export default class DiagnosticCollection {
       uri = URI.parse(uri).toString()
       diagnostics.forEach(o => {
         // should be message for the file, but we need range
-        o.range = o.range || Range.create(0, 0, 0, 0)
-        o.message = o.message || ''
+        o.range = o.range ?? Range.create(0, 0, 0, 0)
+        o.message = o.message ?? ''
         o.source = o.source || this.name
-        if (!o.severity && Array.isArray(o.tags) && intersect(o.tags, knownTags)) {
+        if (!o.severity && Array.isArray(o.tags) && intersect(o.tags, HintTags)) {
           o.severity = DiagnosticSeverity.Hint
         }
       })

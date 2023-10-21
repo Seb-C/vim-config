@@ -1,9 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import { ListMode, ListOptions, Matcher } from '../types'
-import ListConfiguration from './configuration'
-const logger = require('../util/logger')('list-prompt')
+import { ListMode, ListOptions, Matcher } from './types'
+import { Emitter, Event } from '../util/protocol'
+import listConfiguration from './configuration'
 
 export default class Prompt {
   private cusorIndex = 0
@@ -12,11 +11,10 @@ export default class Prompt {
   private _mode: ListMode = 'insert'
   private interactive = false
   private requestInput = false
-
   private _onDidChangeInput = new Emitter<string>()
   public readonly onDidChangeInput: Event<string> = this._onDidChangeInput.event
 
-  constructor(private nvim: Neovim, private config: ListConfiguration) {
+  constructor(private nvim: Neovim) {
   }
 
   public get input(): string {
@@ -69,7 +67,7 @@ export default class Prompt {
   }
 
   public drawPrompt(): void {
-    let indicator = this.config.get<string>('indicator', '>')
+    let indicator = listConfiguration.get<string>('indicator', '>')
     let { cusorIndex, interactive, input, _matcher } = this
     let cmds = ['echo ""']
     if (this.mode == 'insert') {
@@ -134,7 +132,7 @@ export default class Prompt {
 
   public removeNext(): void {
     let { cusorIndex, input } = this
-    if (cusorIndex == input.length - 1) return
+    if (cusorIndex == input.length) return
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex + 1)
     this._input = `${pre}${post}`

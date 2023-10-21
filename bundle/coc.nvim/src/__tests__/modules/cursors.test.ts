@@ -5,7 +5,9 @@ import CursorsSession, { surrondChanges } from '../../cursors/session'
 import TextRange from '../../cursors/textRange'
 import { getChange, getDelta, isSurrondChange, isTextChange, SurrondChange, TextChange } from '../../cursors/util'
 import workspace from '../../workspace'
+import window from '../../window'
 import helper from '../helper'
+import commands from '../../commands'
 
 let nvim: Neovim
 let cursors: Cursors
@@ -15,7 +17,7 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   ns = await nvim.createNamespace('coc-cursors')
-  cursors = new Cursors(nvim)
+  cursors = window.cursors
 })
 
 afterAll(async () => {
@@ -31,7 +33,7 @@ afterEach(async () => {
 
 async function rangeCount(): Promise<number> {
   let buf = await nvim.buffer
-  let markers = await helper.getMarkers(buf.id, ns)
+  let markers = await buf.getExtMarks(ns, 0, -1)
   return markers.length
 }
 
@@ -124,7 +126,6 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       await doc.synchronize()
       await cursors.select(doc.bufnr, 'position', 'n')
-      await helper.wait(30)
       let n = await rangeCount()
       expect(n).toBe(1)
       await nvim.setOption('virtualedit', 'onemore')
@@ -216,16 +217,28 @@ describe('cursors', () => {
       expect(n).toBe(2)
     })
 
-    it('should select by operator', async () => {
+    it('should select by operator char type', async () => {
       await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.call('setline', [1, ['"short"', '"long"']])
       await nvim.call('cursor', [1, 2])
-      await nvim.input('xa"')
-      await helper.wait(30)
-      await nvim.call('cursor', [2, 2])
-      await nvim.input('xa"')
-      await helper.wait(30)
-      await nvim.command('nunmap x')
+      await nvim.input('xi"')
+      await helper.waitValue(() => {
+        let s = cursors.getSession(bufnr)
+        return s ? s.currentRanges.length : 0
+      }, 1)
+    })
+
+    it('should select by operator line type', async () => {
+      await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      await nvim.call('setline', [1, ['"short"', '"long"']])
+      await nvim.call('cursor', [1, 2])
+      await nvim.input('xap')
+      await helper.waitValue(() => {
+        let s = cursors.getSession(bufnr)
+        return s ? s.currentRanges.length : 0
+      }, 2)
     })
   })
 
@@ -241,7 +254,7 @@ describe('cursors', () => {
         Range.create(1, 0, 1, 3),
         Range.create(1, 4, 1, 7)
       ]
-      await cursors.addRanges(ranges)
+      await commands.executeCommand('editor.action.addRanges', ranges)
       let n = await rangeCount()
       expect(n).toBe(5)
     })
@@ -256,7 +269,7 @@ describe('cursors', () => {
         Range.create(0, 0, 0, 3),
         Range.create(1, 0, 1, 3),
       ]
-      await cursors.addRanges(ranges)
+      await helper.doAction('addRanges', ranges)
       let session = cursors.getSession(doc.bufnr)
       expect(session.validChange(Range.create(0, 0, 1, 0), '')).toBe(false)
       expect(session.validChange(Range.create(0, 0, 2, 0), '\n\n')).toBe(false)
@@ -634,9 +647,9 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       const next = async (line: number, character: number) => {
         await nvim.input('<C-n>')
-        await helper.wait(30)
-        let cursor = await nvim.call('coc#cursor#position')
-        expect(cursor).toEqual([line, character])
+        await helper.waitValue(async () => {
+          return await nvim.call('coc#cursor#position')
+        }, [line, character])
       }
       await next(1, 0)
       await next(2, 0)
@@ -648,9 +661,9 @@ describe('cursors', () => {
       await nvim.call('cursor', [3, 1])
       const prev = async (line: number, character: number) => {
         await nvim.input('<C-p>')
-        await helper.wait(30)
-        let cursor = await nvim.call('coc#cursor#position')
-        expect(cursor).toEqual([line, character])
+        await helper.waitValue(async () => {
+          return await nvim.call('coc#cursor#position')
+        }, [line, character])
       }
       await prev(1, 0)
       await prev(0, 0)

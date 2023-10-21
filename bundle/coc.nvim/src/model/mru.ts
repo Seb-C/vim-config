@@ -1,9 +1,8 @@
 'use strict'
-import path from 'path'
-import fs from 'fs-extra'
-import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
-const logger = require('../util/logger')('model-mru')
+import { dataHome } from '../util/constants'
+import { readFileLines, writeFile } from '../util/fs'
+import { fs, path, promisify } from '../util/node'
 
 /**
  * Mru - manage string items as lines in mru file.
@@ -13,27 +12,28 @@ export default class Mru {
 
   /**
    * @param {string} name unique name
-   * @param {string} base? optional directory name, default to config root of coc.nvim
+   * @param {string} base? optional directory name, default to data root of coc.nvim
    */
   constructor(
     name: string,
     base?: string,
     private maximum = 5000) {
-    this.file = path.join(base || process.env.COC_DATA_HOME, name)
+    this.file = path.join(base || dataHome, name)
     let dir = path.dirname(this.file)
-    fs.mkdirpSync(dir)
+    fs.mkdirSync(dir, { recursive: true })
   }
 
   /**
-   * Load iems from mru file
+   * Load lines from mru file
    */
   public async load(): Promise<string[]> {
     try {
       let lines = await readFileLines(this.file, 0, this.maximum)
       if (lines.length > this.maximum) {
-        await writeFile(this.file, lines.join('\n'))
+        let newLines = lines.slice(0, this.maximum)
+        await writeFile(this.file, newLines.join('\n'))
+        return distinct(newLines)
       }
-      if (lines[lines.length - 1] == '') lines = lines.slice(0, -1)
       return distinct(lines)
     } catch (e) {
       return []
@@ -41,7 +41,6 @@ export default class Mru {
   }
 
   public loadSync(): string[] {
-    if (!fs.existsSync(this.file)) return []
     try {
       let content = fs.readFileSync(this.file, 'utf8')
       content = content.trim()
@@ -65,7 +64,7 @@ export default class Mru {
     } catch (e) {
       buf = Buffer.concat([Buffer.from(item, 'utf8'), new Uint8Array([10])])
     }
-    await fs.writeFile(this.file, buf, 'utf8')
+    await promisify(fs.writeFile)(this.file, buf)
   }
 
   /**
@@ -76,7 +75,7 @@ export default class Mru {
     let len = items.length
     items = items.filter(s => s != item)
     if (items.length != len) {
-      await fs.writeFile(this.file, items.join('\n'), 'utf8')
+      await writeFile(this.file, items.join('\n'))
     }
   }
 
@@ -85,7 +84,7 @@ export default class Mru {
    */
   public async clean(): Promise<void> {
     try {
-      await fs.unlink(this.file)
+      await promisify(fs.unlink)(this.file)
     } catch (e) {
       // noop
     }

@@ -1,7 +1,7 @@
 'use strict'
-import { Command, MarkupContent } from 'vscode-languageserver-protocol'
+import { Command, MarkupContent } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import path from 'path'
+import { path } from '../util/node'
 
 export interface TreeItemLabel {
   label: string
@@ -60,4 +60,8 @@ export class TreeItem {
       this.label = label
     }
   }
+}
+
+export function getItemLabel(item: TreeItem): string {
+  return TreeItemLabel.is(item.label) ? item.label.label : item.label
 }

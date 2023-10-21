@@ -1,23 +1,26 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import stringWidth from '@chemzqm/string-width'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { createLogger } from '../logger'
 import { HighlightItem, QuickPickItem } from '../types'
-import { disposeAll } from '../util'
-import { hasMatch, positions } from '../util/fzy'
-import { byteIndex, byteLength } from '../util/string'
+import { defaultValue, disposeAll } from '../util'
+import { isFalsyOrEmpty, toArray } from '../util/array'
+import { anyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { Disposable, Emitter, Event } from '../util/protocol'
+import { byteLength, toText } from '../util/string'
 import { DialogPreferences } from './dialog'
+import { toSpans } from './fuzzyMatch'
 import InputBox from './input'
 import Popup from './popup'
-const logger = require('../util/logger')('model-quickpick')
+import { StrWidth } from './strwidth'
+const logger = createLogger('quickpick')
 
-export interface QuickPickConfig<T extends QuickPickItem> {
-  title?: string
-  items: readonly T[]
-  value?: string
-  canSelectMany?: boolean
-  maxHeight?: number
+interface FilteredLine {
+  line: string
+  score: number
+  index: number
+  spans: [number, number][]
+  descriptionSpan?: [number, number]
 }
 
 /**
@@ -26,13 +29,18 @@ export interface QuickPickConfig<T extends QuickPickItem> {
 export default class QuickPick<T extends QuickPickItem> {
   public title: string
   public loading: boolean
-  public matchOnDescription: boolean
   public items: readonly T[]
   public activeItems: readonly T[]
   public selectedItems: T[]
+  public value: string
+  public canSelectMany = false
+  public matchOnDescription = false
+  public maxHeight = 30
+  public width: number | undefined
+  public placeholder: string | undefined
   private bufnr: number
   private win: Popup
-  private filteredItems: readonly T[]
+  private filteredItems: readonly T[] = []
   private disposables: Disposable[] = []
   private input: InputBox | undefined
   private _changed = false
@@ -43,51 +51,59 @@ export default class QuickPick<T extends QuickPickItem> {
   public readonly onDidFinish: Event<T[] | null> = this._onDidFinish.event
   public readonly onDidChangeSelection: Event<ReadonlyArray<T>> = this._onDidChangeSelection.event
   public readonly onDidChangeValue: Event<string> = this._onDidChangeValue.event
-  constructor(private nvim: Neovim, private config: QuickPickConfig<T>) {
-    let items = config.items ?? []
+  constructor(private nvim: Neovim, private preferences: DialogPreferences = {}) {
+    let items = []
+    let input = this.input = new InputBox(this.nvim, '')
+    if (preferences.maxHeight) this.maxHeight = preferences.maxHeight
     Object.defineProperty(this, 'items', {
       set: (list: T[]) => {
-        this._changed = true
-        items = list
+        items = toArray(list)
+        this.selectedItems = items.filter(o => o.picked)
         this.filterItems('')
       },
-      get: () => {
-        return items
-      }
+      get: () => items
     })
     Object.defineProperty(this, 'activeItems', {
       set: (list: T[]) => {
-        this._changed = true
-        this.filteredItems = list
+        items = toArray(list)
+        this.filteredItems = items
         this.showFilteredItems()
       },
-      get: () => {
-        return this.filteredItems
-      }
+      get: () => this.filteredItems
+    })
+    Object.defineProperty(this, 'value', {
+      set: (value: string) => {
+        this.input.value = value
+      },
+      get: () => this.input.value
     })
     Object.defineProperty(this, 'title', {
       set: (newTitle: string) => {
-        if (this.input) this.input.title = newTitle
+        input.title = toText(newTitle)
       },
-      get: () => {
-        return this.input ? this.input.title : config.title
-      }
+      get: () => input.title ?? ''
     })
     Object.defineProperty(this, 'loading', {
       set: (loading: boolean) => {
-        if (this.input) this.input.loading = loading
+        input.loading = loading
       },
-      get: () => {
-        return this.input ? this.input.loading : false
-      }
+      get: () => input.loading
     })
+    input.onDidChange(value => {
+      this._changed = false
+      this._onDidChangeValue.fire(value)
+      // List already update by change items or activeItems
+      if (this._changed) {
+        this._changed = false
+        return
+      }
+      this.filterItems(value)
+    }, this)
+    input.onDidFinish(this.onFinish, this)
   }
 
-  /**
-   * Current input value
-   */
-  public get value(): string {
-    return this.input ? this.input.value : this.config.value ?? ''
+  public get maxWidth(): number {
+    return this.preferences.maxWidth ?? 80
   }
 
   public get currIndex(): number {
@@ -98,191 +114,185 @@ export default class QuickPick<T extends QuickPickItem> {
     return this.bufnr ? this.nvim.createBuffer(this.bufnr) : undefined
   }
 
-  private setCursor(index: number): void {
+  public get winid(): number | undefined {
+    return this.win?.winid
+  }
+
+  public setCursor(index: number): void {
     this.win?.setCursor(index, true)
   }
 
   private attachEvents(inputBufnr: number): void {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
-        this.dispose()
+        this.bufnr = undefined
+        this.win = undefined
       }
     }, null, this.disposables)
     events.on('PromptKeyPress', async (bufnr, key) => {
       if (bufnr == inputBufnr) {
-        if (key == 'C-f') {
-          await this.win?.scrollForward()
-        } else if (key == 'C-b') {
-          await this.win?.scrollBackward()
-        } else if (['C-j', 'C-n', 'down'].includes(key)) {
+        if (key == '<C-f>') {
+          await this.win.scrollForward()
+        } else if (key == '<C-b>') {
+          await this.win.scrollBackward()
+        } else if (['<C-j>', '<C-n>', '<down>'].includes(key)) {
           this.setCursor(this.currIndex + 1)
-        } else if (['C-k', 'C-p', 'up'].includes(key)) {
+        } else if (['<C-k>', '<C-p>', '<up>'].includes(key)) {
           this.setCursor(this.currIndex - 1)
-        } else if (this.config.canSelectMany && key == 'C-@') {
+        } else if (this.canSelectMany && key == '<C-@>') {
           this.toggePicked(this.currIndex)
         }
       }
     }, null, this.disposables)
   }
 
-  public async show(preferences: DialogPreferences = {}): Promise<void> {
-    let { nvim, items } = this
-    let { title, canSelectMany, value } = this.config
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
-    let selectedItems: T[] = []
-    for (let i = 0; i < items.length; i++) {
-      let item = items[i]
-      let line = canSelectMany ? `[${item.picked ? 'x' : ' '}] ${item.label}` : item.label
-      if (item.picked) selectedItems.push(item)
-      if (item.description) {
-        let start = byteLength(line)
-        line = line + ` ${item.description}`
-        highlights.push({ hlGroup: 'Comment', lnum: i, colStart: start, colEnd: byteLength(line) })
+  public async show(): Promise<void> {
+    let { nvim, items, input, width, preferences, maxHeight } = this
+    let { lines, highlights } = this.buildList(items, input.value)
+    let minWidth: number | undefined
+    let lincount = 0
+    const sw = await StrWidth.create()
+    if (typeof width === 'number') minWidth = Math.min(width, this.maxWidth)
+    let max = 40
+    lines.forEach(line => {
+      let w = sw.getWidth(line)
+      if (typeof minWidth === 'number') {
+        lincount += Math.ceil(w / minWidth)
+      } else {
+        if (w >= 80) {
+          minWidth = 80
+          lincount += Math.ceil(w / minWidth)
+        } else {
+          max = Math.max(max, w)
+          lincount += 1
+        }
       }
-      lines.push(line)
-    }
-    let input = this.input = new InputBox(this.nvim, value ?? '')
-    input.onDidChange(value => {
-      this._onDidChangeValue.fire(value)
-      // Updated by extension
-      if (this._changed) {
-        this._changed = false
-        return
-      }
-      this.filterItems(value)
-    }, this)
-    input.onDidFinish(this.onFinish, this)
-    let minWidth = Math.max(40, Math.min(80, lines.reduce<number>((p, c) => Math.max(p, stringWidth(c)), 0)))
-    await input.show(title ?? '', {
+    })
+    if (minWidth === undefined) minWidth = max
+    let rounded = !!preferences.rounded
+    await input.show(this.title, {
       position: 'center',
+      placeHolder: this.placeholder,
       marginTop: 10,
       border: [1, 1, 0, 1],
       list: true,
+      rounded,
       minWidth,
-      maxWidth: preferences.maxWidth || 80,
-      rounded: !!preferences.rounded,
+      maxWidth: this.maxWidth,
       highlight: preferences.floatHighlight,
       borderhighlight: preferences.floatBorderHighlight
     })
-    this.selectedItems = selectedItems
-    let opts: any = { lines, rounded: !!preferences.rounded }
-    opts.highlights = highlights
-    if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
-    if (preferences.floatBorderHighlight) opts.borderhighlight = preferences.floatBorderHighlight
-    let maxHeight = this.config.maxHeight || preferences.maxHeight
-    if (maxHeight) opts.maxHeight = maxHeight
+    let opts: any = { lines, rounded, maxHeight, highlights, linecount: Math.max(1, lincount) }
+    opts.highlight = defaultValue(preferences.floatHighlight, undefined)
+    opts.borderhighlight = defaultValue(preferences.floatBorderHighlight, undefined)
     let res = await nvim.call('coc#dialog#create_list', [input.winid, input.dimension, opts])
     if (!res) throw new Error('Unable to open list window.')
-    this.filteredItems = items
     // let height
     this.win = new Popup(nvim, res[0], res[1], lines.length)
     this.win.refreshScrollbar()
     this.bufnr = res[1]
-    let idx = canSelectMany || selectedItems.length == 0 ? 0 : items.indexOf(selectedItems[0])
-    this.setCursor(idx)
+    this.setCursor(0)
     this.attachEvents(input.bufnr)
   }
 
-  /**
-   * Filter items with input
-   */
-  private filterItems(input: string): void {
-    let { items, win, selectedItems } = this
-    if (!win) return
-    let { canSelectMany } = this.config
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
-    let idx = 0
+  private buildList(items: ReadonlyArray<T>, input: string, loose = false): { lines: string[], highlights: HighlightItem[] } {
+    let { selectedItems, canSelectMany } = this
     let filteredItems: T[] = []
-    for (let item of items) {
+    let filtered: FilteredLine[] = []
+    let emptyInput = input.length === 0
+    let lowInput = input.toLowerCase()
+    const scoreFn: FuzzyScorer = loose ? anyScore : fuzzyScoreGracefulAggressive
+    const wordPos = canSelectMany ? 4 : 0
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index]
       let filterText = this.toFilterText(item)
-      if (input.length > 0 && !hasMatch(input, filterText)) continue
+      let spans: [number, number][] = []
+      let score = 0
+      let descriptionSpan: [number, number] | undefined
+      if (!emptyInput) {
+        let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), wordPos, { boostFullMatch: false, firstMatchCanBeWeak: true })
+        if (!res) continue
+        // keep the order for loose match
+        score = loose ? 0 : res[0]
+        spans = toSpans(filterText, res)
+      }
       let picked = selectedItems.includes(item)
       let line = canSelectMany ? `[${picked ? 'x' : ' '}] ${item.label}` : item.label
       if (item.description) {
         let start = byteLength(line)
         line = line + ` ${item.description}`
-        highlights.push({ hlGroup: 'Comment', lnum: idx, colStart: start, colEnd: byteLength(line) })
+        descriptionSpan = [start, start + 1 + byteLength(item.description)]
       }
-      let arr = positions(input, filterText)
-      arr.forEach(n => {
-        let colStart = byteIndex(filterText, n)
-        highlights.push({
-          hlGroup: 'CocSearch',
-          colStart,
-          colEnd: colStart + 1,
-          lnum: idx
-        })
-      })
-      filteredItems.push(item)
-      lines.push(line)
-      idx += 1
+      let lineItem: FilteredLine = { line, descriptionSpan, index, score, spans }
+      filtered.push(lineItem)
     }
+    let lines: string[] = []
+    let highlights: HighlightItem[] = []
+    filtered.sort((a, b) => {
+      if (a.score != b.score) return b.score - a.score
+      return a.index - b.index
+    })
+    const toHighlight = (lnum: number, span: [number, number], hlGroup: string, pre: number) => {
+      return { lnum, colStart: span[0] + pre, colEnd: span[1] + pre, hlGroup }
+    }
+    filtered.forEach((item, index) => {
+      lines.push(item.line)
+      item.spans.forEach(span => {
+        highlights.push(toHighlight(index, span, 'CocSearch', wordPos))
+      })
+      if (item.descriptionSpan) {
+        highlights.push(toHighlight(index, item.descriptionSpan, 'Comment', 0))
+      }
+      filteredItems.push(items[item.index])
+    })
     this.filteredItems = filteredItems
-    this.win.linecount = lines.length
+    return { lines, highlights }
+  }
+
+  /**
+   * Filter items, does highlight only when loose is true
+   */
+  private _filter(items: ReadonlyArray<T>, input: string, loose = false): void {
+    if (!this.win) return
+    this._changed = true
+    let { lines, highlights } = this.buildList(items, input, loose)
     this.nvim.call('coc#dialog#update_list', [this.win.winid, this.win.bufnr, lines, highlights], true)
+    this.win.linecount = lines.length
     this.setCursor(0)
   }
 
-  private showFilteredItems(): void {
-    let { win, input, filteredItems } = this
-    if (!win) return
-    let { canSelectMany } = this.config
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
-    let idx = 0
-    let selectedItems: T[] = []
-    for (let item of filteredItems) {
-      let filterText = this.toFilterText(item)
-      let line = canSelectMany ? `[${item.picked ? 'x' : ' '}] ${item.label}` : item.label
-      if (item.picked) selectedItems.push(item)
-      if (item.description) {
-        let start = byteLength(line)
-        line = line + ` ${item.description}`
-        highlights.push({ hlGroup: 'Comment', lnum: idx, colStart: start, colEnd: byteLength(line) })
-      }
-      let arr = positions(input.value, filterText)
-      arr.forEach(n => {
-        let colStart = byteIndex(filterText, n)
-        highlights.push({
-          hlGroup: 'CocSearch',
-          colStart,
-          colEnd: colStart + 1,
-          lnum: idx
-        })
-      })
-      lines.push(line)
-      idx += 1
-    }
-    this.selectedItems = selectedItems
-    this.win.linecount = lines.length
-    this.nvim.call('coc#dialog#update_list', [this.win.winid, this.win.bufnr, lines, highlights], true)
-    this.setCursor(canSelectMany || selectedItems.length == 0 ? 0 : filteredItems.indexOf(selectedItems[0]))
+  /**
+   * Filter items with input
+   */
+  public filterItems(input: string): void {
+    this._filter(this.items, input)
+  }
+
+  public showFilteredItems(): void {
+    let { input, filteredItems } = this
+    this._filter(filteredItems, input.value, true)
   }
 
   private onFinish(input: string | undefined): void {
-    if (input == null) {
-      this._onDidChangeSelection.fire([])
-      this._onDidFinish.fire(null)
-      return
+    let items = input == null ? null : this.getSelectedItems()
+    if (!this.canSelectMany && input !== undefined && !isFalsyOrEmpty(items)) {
+      this._onDidChangeSelection.fire(items)
     }
-    let selected = this.getSelectedItems()
-    if (!this.config.canSelectMany) {
-      this._onDidChangeSelection.fire(selected)
-    }
-    this._onDidFinish.fire(selected)
+    this.nvim.call('coc#float#close', [this.winid], true)
+    // needed to make sure window closed
+    setTimeout(() => {
+      this._onDidFinish.fire(items)
+      this.dispose()
+    }, 30)
   }
 
   private getSelectedItems(): T[] {
-    let { win } = this
-    let { canSelectMany } = this.config
+    let { canSelectMany } = this
     if (canSelectMany) return this.selectedItems
-    let item = this.filteredItems[win.currIndex]
-    return item == null ? [] : [item]
+    return toArray(this.filteredItems[this.currIndex])
   }
 
-  private toggePicked(index: number): void {
+  public toggePicked(index: number): void {
     let { nvim, filteredItems, selectedItems } = this
     let item = filteredItems[index]
     if (!item) return
@@ -302,14 +312,14 @@ export default class QuickPick<T extends QuickPickItem> {
 
   private toFilterText(item: T): string {
     let { label, description } = item
-    let { canSelectMany } = this.config
+    let { canSelectMany } = this
     let line = `${canSelectMany ? '    ' : ''}${label.replace(/\r?\n/, '')}`
     return this.matchOnDescription ? line + ' ' + (description ?? '') : line
   }
 
   public dispose(): void {
     this.bufnr = undefined
-    this.input?.dispose()
+    this.input.dispose()
     this.win?.close()
     this._onDidFinish.dispose()
     this._onDidChangeSelection.dispose()

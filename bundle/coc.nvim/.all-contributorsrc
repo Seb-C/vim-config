@@ -1873,6 +1873,132 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "creasty",
+      "name": "Yuki Iwanaga",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1695538?v=4",
+      "profile": "https://creasty.com",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "springhack",
+      "name": "SpringHack",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2389889?v=4",
+      "profile": "https://www.dosk.win/",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "lmburns",
+      "name": "Lucas Burns",
+      "avatar_url": "https://avatars.githubusercontent.com/u/44355502?v=4",
+      "profile": "http://git.lmburns.com",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "qiqiboy",
+      "name": "qiqiboy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3774036?v=4",
+      "profile": "http://qiqi.boy.im",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "timsu92",
+      "name": "timsu92",
+      "avatar_url": "https://avatars.githubusercontent.com/u/33785401?v=4",
+      "profile": "https://github.com/timsu92",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "sartak",
+      "name": "Shawn M Moore",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45430?v=4",
+      "profile": "https://sartak.org",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "aauren",
+      "name": "Aaron U'Ren",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1392295?v=4",
+      "profile": "https://github.com/aauren",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "SirCharlieMars",
+      "name": "SeniorMars",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31679231?v=4",
+      "profile": "https://github.com/SirCharlieMars",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "CollieIsCute",
+      "name": "牧羊犬真Q",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43088530?v=4",
+      "profile": "https://github.com/CollieIsCute",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "geraldspreer",
+      "name": "geraldspreer",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1745692?v=4",
+      "profile": "http://geraldspreer.com",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "3ximus",
+      "name": "Fabio",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9083012?v=4",
+      "profile": "http://3ximus.github.io/cv",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "skysky97",
+      "name": "Li Yunting",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18086458?v=4",
+      "profile": "https://github.com/skysky97",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "LebJe",
+      "name": "Jeff L.",
+      "avatar_url": "https://avatars.githubusercontent.com/u/51171427?v=4",
+      "profile": "https://github.com/LebJe",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "mcmire",
+      "name": "Elliot Winkler",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7371?v=4",
+      "profile": "https://hachyderm.io/@mcmire",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

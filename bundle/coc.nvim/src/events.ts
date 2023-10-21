@@ -1,14 +1,19 @@
 'use strict'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
-import { CompleteDoneItem } from './types'
+import type { CompleteDoneItem, CompleteFinishKind } from './completion/types'
+import { createLogger } from './logger'
 import { disposeAll } from './util'
+import { CancellationError } from './util/errors'
+import * as Is from './util/is'
 import { equals } from './util/object'
-import { byteSlice } from './util/string'
-const logger = require('./util/logger')('events')
+import { CancellationToken, Disposable } from './util/protocol'
+import { byteLength, byteSlice } from './util/string'
+const logger = createLogger('events')
+const SYNC_AUTOCMDS = ['BufWritePre']
 
 export type Result = void | Promise<void>
 
 export interface PopupChangeEvent {
+  readonly startcol: number
   readonly index: number
   readonly word: string
   readonly height: number
@@ -33,11 +38,29 @@ export interface InsertChange {
   insertChar?: string
 }
 
-export type BufEvents = 'BufHidden' | 'BufEnter'
+export enum EventName {
+  Ready = 'ready',
+  PumInsert = 'PumInsert',
+  InsertEnter = 'InsertEnter',
+  InsertLeave = 'InsertLeave',
+  CursorHoldI = 'CursorHoldI',
+  CursorMovedI = 'CursorMovedI',
+  CursorHold = 'CursorHold',
+  CursorMoved = 'CursorMoved',
+  MenuPopupChanged = 'MenuPopupChanged',
+  InsertCharPre = 'InsertCharPre',
+  TextChanged = 'TextChanged',
+  BufEnter = 'BufEnter',
+  TextChangedI = 'TextChangedI',
+  TextChangedP = 'TextChangedP',
+  TextInsert = 'TextInsert',
+}
+
+export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
   | 'BufDetach' | 'Enter' | 'LinesChanged'
 
-export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready' | 'VimLeavePre'
+export type EmptyEvents = 'FocusGained' | 'ColorScheme' | 'FocusLost' | 'InsertSnippet' | 'VimLeavePre' | 'ready' | 'PumNavigate'
 
 export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
@@ -51,10 +74,11 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
-  | 'PromptKeyPress'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress'
 
-export type CursorEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'CursorHoldI'
+export type CursorEvents = CursorHoldEvents | CursorMoveEvents
+export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
+export type CursorMoveEvents = 'CursorMoved' | 'CursorMovedI'
 
 export type OptionValue = string | number | boolean
 
@@ -75,7 +99,7 @@ class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
-  private _bufnr: number
+  private _bufnr = 1
   // bufnr & character
   private _recentInserts: [number, string][] = []
   private _lastChange = 0
@@ -83,7 +107,23 @@ class Events {
   private _pumAlignTop = false
   private _pumVisible = false
   private _completing = false
+  private _requesting = false
+  private _ready = false
+  private _last_pum_insert: string | undefined
+  public timeout = 1000
   // public completing = false
+
+  public set requesting(val: boolean) {
+    this._requesting = val
+  }
+
+  public get requesting(): boolean {
+    return this._requesting
+  }
+
+  public get ready(): boolean {
+    return this._ready
+  }
 
   public set completing(completing: boolean) {
     this._completing = completing
@@ -95,7 +135,7 @@ class Events {
   }
 
   public get cursor(): CursorPosition {
-    return this._cursor
+    return this._cursor ?? { bufnr: this._bufnr, col: 1, lnum: 1, insert: false }
   }
 
   public get bufnr(): number {
@@ -124,7 +164,7 @@ class Events {
   public race(events: AllEvents[], token?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined> {
     let disposables: Disposable[] = []
     return new Promise(resolve => {
-      if (typeof token === 'number') {
+      if (Is.number(token)) {
         let timer = setTimeout(() => {
           disposeAll(disposables)
           resolve(undefined)
@@ -148,41 +188,51 @@ class Events {
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
-    let cbs = this.handlers.get(event)
-    if (event == 'InsertEnter') {
+    if (event === EventName.Ready) {
+      this._ready = true
+    } else if (event == EventName.InsertEnter) {
       this._insertMode = true
-    } else if (event == 'InsertLeave') {
+    } else if (event == EventName.InsertLeave) {
+      this._last_pum_insert = undefined
       this._insertMode = false
       this._pumVisible = false
       this._recentInserts = []
-    } else if (event == 'CursorHoldI' || event == 'CursorMovedI') {
+    } else if (event == EventName.CursorHoldI || event == EventName.CursorMovedI) {
       this._bufnr = args[0]
       if (!this._insertMode) {
         this._insertMode = true
-        void this.fire('InsertEnter', [args[0]])
+        void this.fire(EventName.InsertEnter, [args[0]])
       }
-    } else if (event == 'CursorHold' || event == 'CursorMoved') {
+    } else if (event == EventName.CursorHold || event == EventName.CursorMoved) {
       this._bufnr = args[0]
       if (this._insertMode) {
         this._insertMode = false
-        void this.fire('InsertLeave', [args[0]])
+        void this.fire(EventName.InsertLeave, [args[0]])
       }
-    } else if (event == 'MenuPopupChanged') {
+    } else if (event == EventName.MenuPopupChanged) {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-    } else if (event == 'InsertCharPre') {
+    } else if (event == EventName.InsertCharPre) {
       this._recentInserts.push([args[1], args[0]])
-    } else if (event == 'TextChanged') {
+    } else if (event == EventName.TextChanged) {
       this._lastChange = Date.now()
-    } else if (event == 'BufEnter') {
+    } else if (event == EventName.BufEnter) {
       this._bufnr = args[0]
-    } else if (event == 'TextChangedI' || event == 'TextChangedP') {
-      let arr = this._recentInserts.filter(o => o[0] == args[0])
+    } else if (event == EventName.TextChangedI || event == EventName.TextChangedP) {
+      let info: InsertChange = args[1]
+      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
+      let arr: [number, string][]
+      // use TextChangedP and disable insert
+      if (this._last_pum_insert != null && this._last_pum_insert == pre) {
+        arr = []
+        event = EventName.TextChangedP
+      } else {
+        arr = this._recentInserts.filter(o => o[0] == args[0])
+      }
+      this._last_pum_insert = undefined
       this._bufnr = args[0]
       this._recentInserts = []
       this._lastChange = Date.now()
-      let info: InsertChange = args[1]
-      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
       info.pre = pre
       // fix cursor since vim not send CursorMovedI event
       this._cursor = Object.freeze({
@@ -197,42 +247,60 @@ class Events {
           info.insertChar = character
           // make it fires after TextChangedI & TextChangedP
           process.nextTick(() => {
-            void this.fire('TextInsert', [...args, character])
+            void this.fire(EventName.TextInsert, [...args, character])
           })
         }
       }
+    } else if (event == EventName.PumInsert) {
+      this._last_pum_insert = args[0]
+      return
     }
-    if (event == 'CursorMoved' || event == 'CursorMovedI') {
+    if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
       let cursor = {
         bufnr: args[0],
         lnum: args[1][0],
         col: args[1][1],
-        insert: event == 'CursorMovedI'
+        insert: event == EventName.CursorMovedI
       }
+      if (this._last_pum_insert && byteLength(this._last_pum_insert) + 1 == cursor.col) return
       // Avoid CursorMoved event when it's not moved at all
-      if (this._cursor && equals(this._cursor, cursor)) return
-      this._cursor = Object.freeze(cursor)
+      if ((this._cursor && equals(this._cursor, cursor))) return
+      this._cursor = cursor
     }
-    if (cbs) {
-      try {
-        args.forEach(val => {
-          if (typeof val === 'object') Object.freeze(val)
-        })
-        // need slice since the array might changed when execute fn
-        await Promise.all(cbs.slice().map(fn => fn(args)))
-      } catch (e) {
-        if (e instanceof Error && e.message?.includes('transport disconnected')) return
-        logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
-      }
+    let cbs = this.handlers.get(event)
+    if (cbs?.length) {
+      let fns = cbs.slice()
+      let traceSlow = SYNC_AUTOCMDS.includes(event)
+      await Promise.allSettled(fns.map(fn => {
+        let promiseFn = async () => {
+          let timer: NodeJS.Timer
+          if (traceSlow) {
+            timer = setTimeout(() => {
+              console.error(`Slow "${event}" handler detected`, fn['stack'])
+              logger.error(`Slow "${event}" handler detected`, fn['stack'])
+            }, this.timeout)
+          }
+          try {
+            await fn(args)
+          } catch (e) {
+            let res = shouldIgnore(e)
+            if (!res) logger.error(`Error on event: ${event}`, e)
+          }
+          clearTimeout(timer)
+        }
+        return promiseFn()
+      }))
     }
   }
 
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: CursorEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: TabEvents, handler: (tabnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TabClosed', handler: (tabids: number[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TabNew', handler: (tabid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PromptKeyPress', handler: (bufnr: number, key: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -244,8 +312,8 @@ class Events {
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteStop', handler: (kind: 'confirm' | 'cancel' | '', pretext: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem | {}) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteStop', handler: (kind: CompleteFinishKind) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -278,6 +346,7 @@ class Events {
           reject(e)
         }
       })
+      Error.captureStackTrace(wrappedhandler)
       arr.push(wrappedhandler)
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
@@ -293,4 +362,10 @@ class Events {
     }
   }
 }
+
+function shouldIgnore(err: any): boolean {
+  if (err instanceof CancellationError || (err instanceof Error && err.message.includes('transport disconnected'))) return true
+  return false
+}
+
 export default new Events()

@@ -1,10 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
-const logger = require('../util/logger')('model-dialog')
+import { toArray } from '../util/array'
 
 export interface DialogButton {
   /**
@@ -62,7 +62,7 @@ export interface DialogConfig {
   callback?: (index: number) => void
 }
 
-export default class Dialog {
+export class Dialog {
   private disposables: Disposable[] = []
   private bufnr: number
   private readonly _onDidClose = new Emitter<void>()
@@ -74,10 +74,10 @@ export default class Dialog {
         if (config.callback) config.callback(-1)
       }
     }, null, this.disposables)
+    let btns = toArray(config.buttons).filter(o => o.disabled != true)
     events.on('FloatBtnClick', (bufnr, idx) => {
       if (bufnr == this.bufnr) {
         this.dispose()
-        let btns = config?.buttons.filter(o => o.disabled != true)
         if (config.callback) config.callback(btns[idx].index)
       }
     }, null, this.disposables)
@@ -103,15 +103,14 @@ export default class Dialog {
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
     if (preferences.rounded) opts.rounded = 1
     if (Array.isArray(opts.buttons)) opts.getchar = 1
-    let res = await nvim.call('coc#dialog#create_dialog', [this.lines, opts])
-    if (!res) throw new Error('Unable to open dialog window.')
-    this.bufnr = res[1]
+    let [_winid, bufnr] = await nvim.call('coc#dialog#create_dialog', [this.lines, opts]) as [number, number]
+    this.bufnr = bufnr
     nvim.command('redraw', true)
   }
 
   public get winid(): Promise<number | null> {
     if (!this.bufnr) return Promise.resolve(null)
-    return this.nvim.call('bufwinid', [this.bufnr])
+    return this.nvim.call('bufwinid', [this.bufnr]) as Promise<number>
   }
 
   public dispose(): void {

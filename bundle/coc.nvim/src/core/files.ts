@@ -1,37 +1,207 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
-import glob from 'glob'
-import minimatch from 'minimatch'
-import os from 'os'
-import path from 'path'
-import { promisify } from 'util'
-import { v4 as uuid } from 'uuid'
-import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { TextDocument } from 'vscode-languageserver-textdocument'
+import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
-import RelativePattern from '../model/relativePattern'
-import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, LinesChange } from '../types'
+import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
-import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
-import { byteLength } from '../util/string'
-import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
+import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
+import { crypto, fs, glob, minimatch, os, path, promisify } from '../util/node'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
+import { byteIndex } from '../util/string'
+import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
 import Documents from './documents'
 import type Keymaps from './keymaps'
-import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
+const logger = createLogger('core-files')
 
-export type GlobPattern = string | RelativePattern
+export interface LinesChange {
+  uri: string
+  lnum: number
+  oldLines: ReadonlyArray<string>
+  newLines: ReadonlyArray<string>
+}
+
+/**
+ * An event that is fired when a [document](#TextDocument) will be saved.
+ *
+ * To make modifications to the document before it is being saved, call the
+ * [`waitUntil`](#TextDocumentWillSaveEvent.waitUntil)-function with a thenable
+ * that resolves to an array of [text edits](#TextEdit).
+ */
+export interface TextDocumentWillSaveEvent {
+
+  /**
+   * The document that will be saved.
+   */
+  document: TextDocument
+
+  /**
+   * The reason why save was triggered.
+   */
+  reason: TextDocumentSaveReason
+
+  /**
+   * Allows to pause the event loop and to apply [pre-save-edits](#TextEdit).
+   * Edits of subsequent calls to this function will be applied in order. The
+   * edits will be *ignored* if concurrent modifications of the document happened.
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
+   */
+  waitUntil(thenable: Thenable<TextEdit[] | any>): void
+}
+
+/**
+ * An event that is fired when files are going to be renamed.
+ *
+ * To make modifications to the workspace before the files are renamed,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillRenameEvent {
+
+  /**
+   * The files that are going to be renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
+   *
+   * // sync, OK
+   * event.waitUntil(promise);
+   * })
+   * ```
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are renamed.
+ */
+export interface FileRenameEvent {
+
+  /**
+   * The files that got renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
+}
+
+/**
+ * An event that is fired when files are going to be created.
+ *
+ * To make modifications to the workspace before the files are created,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillCreateEvent {
+
+  /**
+   * A cancellation token.
+   */
+  readonly token: CancellationToken
+
+  /**
+   * The files that are going to be created.
+   */
+  readonly files: ReadonlyArray<URI>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
+   *
+   * // sync, OK
+   * event.waitUntil(promise);
+   * })
+   * ```
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are created.
+ */
+export interface FileCreateEvent {
+
+  /**
+   * The files that got created.
+   */
+  readonly files: ReadonlyArray<URI>
+}
+
+/**
+ * An event that is fired when files are going to be deleted.
+ *
+ * To make modifications to the workspace before the files are deleted,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillDeleteEvent {
+
+  /**
+   * The files that are going to be deleted.
+   */
+  readonly files: ReadonlyArray<URI>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
+   *
+   * // sync, OK
+   * event.waitUntil(promise);
+   * })
+   * ```
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are deleted.
+ */
+export interface FileDeleteEvent {
+
+  /**
+   * The files that got deleted.
+   */
+  readonly files: ReadonlyArray<URI>
+}
 
 interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
-
-const logger = require('../util/logger')('core-files')
 
 export default class Files {
   private nvim: Neovim
@@ -69,10 +239,7 @@ export default class Files {
   public async openTextDocument(uri: URI | string): Promise<Document> {
     uri = typeof uri === 'string' ? URI.file(uri) : uri
     let doc = this.documents.getDocument(uri.toString())
-    if (doc) {
-      await this.jumpTo(uri.toString(), null, 'drop')
-      return doc
-    }
+    if (doc) return doc
     const scheme = uri.scheme
     if (scheme == 'file') {
       if (!fs.existsSync(uri.fsPath)) throw errors.fileNotExists(uri.fsPath)
@@ -82,16 +249,24 @@ export default class Files {
       await this.nvim.call('coc#util#open_file', ['tab drop', uri.path])
       return await this.documents.document
     }
-    return await this.loadResource(uri.toString())
+    return await this.loadResource(uri.toString(), null)
   }
 
-  public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
-    const preferences = this.configurations.getConfiguration('coc.preferences')
-    let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
+  public async jumpTo(uri: string | URI, position?: Position | null, openCommand?: string): Promise<void> {
+    if (!openCommand) openCommand = this.configurations.initialConfiguration.get<string>('coc.preferences.jumpCommand', 'edit')
     let { nvim } = this
-    let doc = this.documents.getDocument(uri)
+    let u = uri instanceof URI ? uri : URI.parse(uri)
+    let doc = this.documents.getDocument(u.with({ fragment: '' }).toString())
     let bufnr = doc ? doc.bufnr : -1
-    if (bufnr != -1 && jumpCommand == 'edit') {
+    if (!position && u.scheme === 'file' && u.fragment) {
+      let parts = u.fragment.split(',')
+      let lnum = parseInt(parts[0], 10)
+      if (!isNaN(lnum)) {
+        let col = parts.length > 0 && /^\d+$/.test(parts[1]) ? parseInt(parts[1], 10) : undefined
+        position = Position.create(lnum - 1, col == null ? 0 : col - 1)
+      }
+    }
+    if (bufnr != -1 && openCommand == 'edit') {
       // use buffer command since edit command would reload the buffer
       nvim.pauseNotification()
       nvim.command(`silent! normal! m'`, true)
@@ -99,18 +274,18 @@ export default class Files {
       nvim.command(`if &filetype ==# '' | filetype detect | endif`, true)
       if (position) {
         let line = doc.getline(position.line)
-        let col = byteLength(line.slice(0, position.character)) + 1
+        let col = byteIndex(line, position.character) + 1
         nvim.call('cursor', [position.line + 1, col], true)
       }
       await nvim.resumeNotification(true)
     } else {
-      let { fsPath, scheme } = URI.parse(uri)
+      let { fsPath, scheme } = u
       let pos = position == null ? null : [position.line, position.character]
       if (scheme == 'file') {
-        let bufname = fixDriver(path.normalize(fsPath))
-        await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
+        let bufname = normalizeFilePath(fsPath)
+        await this.nvim.call('coc#util#jump', [openCommand, bufname, pos])
       } else {
-        await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
+        await this.nvim.call('coc#util#jump', [openCommand, uri.toString(), pos])
       }
     }
   }
@@ -125,26 +300,26 @@ export default class Files {
       await nvim.call('coc#ui#open_url', uri)
       return
     }
-    let wildignore = await nvim.getOption('wildignore')
-    await nvim.setOption('wildignore', '')
     await this.jumpTo(uri)
-    await nvim.setOption('wildignore', wildignore)
+    await this.documents.document
   }
 
   /**
    * Load uri as document.
    */
-  public async loadResource(uri: string): Promise<Document> {
+  public async loadResource(uri: string, cmd?: string): Promise<Document> {
     let doc = this.documents.getDocument(uri)
     if (doc) return doc
-    const preferences = this.configurations.getConfiguration('workspace')
-    let cmd = preferences.get<string>('openResourceCommand', 'tab drop')
+    if (cmd === undefined) {
+      const preferences = this.configurations.getConfiguration('workspace')
+      cmd = preferences.get<string>('openResourceCommand', 'tab drop')
+    }
     let u = URI.parse(uri)
     let bufname = u.scheme === 'file' ? u.fsPath : uri
     let bufnr: number
     if (cmd) {
-      let winid = await this.nvim.call('win_getid')
-      bufnr = await this.nvim.call('coc#util#open_file', [cmd, bufname])
+      let winid = await this.nvim.call('win_getid') as number
+      bufnr = await this.nvim.call('coc#util#open_file', [cmd, bufname]) as number
       await this.nvim.call('win_gotoid', [winid])
     } else {
       let arr = await this.nvim.call('coc#ui#open_files', [[bufname]])
@@ -195,18 +370,14 @@ export default class Files {
           }
           curr = path.dirname(curr)
         }
-        await fs.mkdirp(dir)
-        recovers && recovers.push(async () => {
-          if (fs.existsSync(folder)) {
-            await fs.remove(folder)
-          }
+        fs.mkdirSync(dir, { recursive: true })
+        recovers && recovers.push(() => {
+          fs.rmSync(folder, { force: true, recursive: true })
         })
       }
       fs.writeFileSync(filepath, '', 'utf8')
-      recovers && recovers.push(async () => {
-        if (fs.existsSync(filepath)) {
-          await fs.unlink(filepath)
-        }
+      recovers && recovers.push(() => {
+        fs.rmSync(filepath, { force: true, recursive: true })
       })
       let doc = await this.loadResource(filepath)
       let bufnr = doc.bufnr
@@ -241,28 +412,29 @@ export default class Files {
         })
       }
     }
+    let folder = path.join(os.tmpdir(), 'coc-' + process.pid)
+    fs.mkdirSync(folder, { recursive: true })
+    let md5 = crypto.createHash('md5').update(filepath).digest('hex')
     if (isDir && recursive) {
-      // copy files for recover
-      let folder = path.join(os.tmpdir(), 'coc-' + uuid())
-      await fs.mkdir(folder)
-      await fs.copy(filepath, folder, { recursive: true })
-      await fs.remove(filepath)
+      let dest = path.join(folder, md5)
+      let dir = path.dirname(filepath)
+      fs.renameSync(filepath, dest)
       recovers && recovers.push(async () => {
-        await fs.mkdir(filepath)
-        await fs.copy(folder, filepath, { recursive: true })
-        await fs.remove(folder)
+        fs.mkdirSync(dir, { recursive: true })
+        fs.renameSync(dest, filepath)
       })
     } else if (isDir) {
-      await fs.rmdir(filepath)
+      fs.rmdirSync(filepath)
       recovers && recovers.push(() => {
-        return fs.mkdir(filepath)
+        fs.mkdirSync(filepath)
       })
     } else {
-      let dest = path.join(os.tmpdir(), 'coc-' + uuid())
-      await fs.copyFile(filepath, dest)
-      await fs.unlink(filepath)
+      let dest = path.join(folder, md5)
+      let dir = path.dirname(filepath)
+      fs.renameSync(filepath, dest)
       recovers && recovers.push(() => {
-        return fs.move(dest, filepath, { overwrite: true })
+        fs.mkdirSync(dir, { recursive: true })
+        fs.renameSync(dest, filepath)
       })
     }
     this._onDidDeleteFiles.fire({ files: [uri] })
@@ -284,15 +456,15 @@ export default class Files {
     let file = { newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
     if (loaded) {
-      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null])
+      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null]) as number
       await this.documents.onBufCreate(bufnr)
     } else {
-      if (oldStat?.isDirectory()) {
-        for (let doc of this.documents.documents) {
+      if (oldStat.isDirectory()) {
+        for (let doc of this.documents.attached('file')) {
           let u = URI.parse(doc.uri)
-          if (u.scheme === 'file' && isParentFolder(oldPath, u.fsPath, false)) {
+          if (isParentFolder(oldPath, u.fsPath, false)) {
             let filepath = u.fsPath.replace(oldPath, newPath)
-            let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false])
+            let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false]) as number
             await this.documents.onBufCreate(bufnr)
           }
         }
@@ -305,23 +477,22 @@ export default class Files {
     if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] })
   }
 
-  public async renameCurrent(): Promise<void> {
-    let { nvim } = this
-    let oldPath = await nvim.call('expand', ['%:p'])
-    // await nvim.callAsync()
-    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
-    newPath = newPath ? newPath.trim() : null
-    if (newPath === oldPath || !newPath) return
-    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
-      let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
-      if (!overwrite) return
+  /**
+   * Return denied annotations
+   */
+  private async promptAnotations(documentChanges: DocumentChange[], changeAnnotations: { [id: string]: ChangeAnnotation } | undefined): Promise<string[]> {
+    let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
+    let denied: string[] = []
+    for (let key of toConfirm) {
+      let annotation = changeAnnotations[key]
+      let res = await this.window.showMenuPicker(['Yes', 'No'], {
+        position: 'center',
+        title: 'Confirm edits',
+        content: annotation.label + (annotation.description ? ' ' + annotation.description : '')
+      })
+      if (res !== 0) denied.push(key)
     }
-    await this.renameFile(oldPath, newPath, { overwrite: true })
-  }
-
-  private get currentUri(): string {
-    let document = this.documents.getDocument(this.documents.bufnr)
-    return document ? document.uri : null
+    return denied
   }
 
   /**
@@ -332,23 +503,10 @@ export default class Files {
     let recovers: RecoverFunc[] = []
     let currentOnly = false
     try {
-      let { changeAnnotations } = edit
-      let { currentUri } = this
-      let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
+      let denied = await this.promptAnotations(documentChanges, edit.changeAnnotations)
+      if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied)
       let changes: { [uri: string]: LinesChange } = {}
-      let denied: string[] = []
-      for (let key of toConfirm) {
-        let annotation = changeAnnotations[key]
-        annotation.needsConfirmation = false
-        let res = await this.window.showMenuPicker(['Yes', 'No'], {
-          position: 'center',
-          title: 'Confirm edits',
-          content: annotation.label + (annotation.description ? ' ' + annotation.description : '')
-        })
-        if (res !== 0) denied.push(key)
-      }
-      documentChanges = documentChanges.filter(c => !denied.includes(getAnnotationKey(c)))
-      if (!documentChanges.length) return true
+      let currentUri = await this.documents.getCurrentUri()
       currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
@@ -387,8 +545,8 @@ export default class Files {
       this.nvim.redrawVim()
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
-      await this.undoChanges(recovers)
       if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
+      await this.undoChanges(recovers)
       return false
     }
     // avoid message when change current file only.
@@ -400,7 +558,7 @@ export default class Files {
   private async undoChanges(recovers: RecoverFunc[]): Promise<void> {
     while (recovers.length > 0) {
       let fn = recovers.pop()
-      await fn()
+      await Promise.resolve(fn())
     }
   }
 
@@ -433,23 +591,23 @@ export default class Files {
     await this.applyEdit(editState.edit)
   }
 
-  private validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {
+  public validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {
     let { documents } = this
     for (let change of documentChanges) {
       if (TextDocumentEdit.is(change)) {
         let { uri, version } = change.textDocument
         let doc = documents.getDocument(uri)
         if (typeof version === 'number' && version > 0) {
-          if (!doc) throw new Error(`File ${uri} not loaded`)
+          if (!doc) throw errors.notLoaded(uri)
           if (doc.version != version) throw new Error(`${uri} changed before apply edit`)
-        } else if (!doc) {
-          if (!isFile(uri)) throw errors.badScheme(URI.parse(uri).scheme)
+        } else if (!doc && !isFile(uri)) {
+          throw errors.badScheme(uri)
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
-        if (!isFile(change.uri)) throw errors.badScheme(URI.parse(change.uri).scheme)
+        if (!isFile(change.uri)) throw errors.badScheme(change.uri)
       } else if (RenameFile.is(change)) {
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
-          throw errors.badScheme(URI.parse(change.oldUri).scheme)
+          throw errors.badScheme(change.oldUri)
         }
       }
     }
@@ -460,26 +618,39 @@ export default class Files {
     if (token?.isCancellationRequested || !folders.length || maxResults === 0) return []
     maxResults = maxResults ?? Infinity
     let roots = folders.map(o => URI.parse(o.uri).fsPath)
+    let pattern: string
     if (typeof include !== 'string') {
-      let base = include.baseUri.fsPath
-      roots = roots.filter(r => isParentFolder(base, r, true))
+      pattern = include.pattern
+      roots = [include.baseUri.fsPath]
+    } else {
+      pattern = include
     }
-    let pattern = typeof include === 'string' ? include : include.pattern
     let res: URI[] = []
+    let exceed = false
+    const ac = new AbortController()
+    if (token) {
+      token.onCancellationRequested(() => {
+        ac.abort()
+      })
+    }
     for (let root of roots) {
-      if (res.length >= maxResults) break
-      let files = await promisify(glob)(pattern, {
+      let files = await glob.glob(pattern, {
+        signal: ac.signal,
         dot: true,
         cwd: root,
         nodir: true,
         absolute: false
       })
-      if (token?.isCancellationRequested) return []
+      if (token?.isCancellationRequested) break
       for (let file of files) {
         if (exclude && fileMatch(root, file, exclude)) continue
         res.push(URI.file(path.join(root, file)))
-        if (res.length === maxResults) break
+        if (res.length === maxResults) {
+          exceed = true
+          break
+        }
       }
+      if (exceed) break
     }
     return res
   }

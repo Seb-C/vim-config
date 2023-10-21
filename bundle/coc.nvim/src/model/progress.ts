@@ -1,9 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import Notification, { NotificationPreferences } from './notification'
-import { CancellationToken, CancellationTokenSource, Event, Emitter } from 'vscode-languageserver-protocol'
 import events from '../events'
-const logger = require('../util/logger')('model-progress')
+import { createLogger } from '../logger'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
+import Notification, { NotificationPreferences } from './notification'
+const logger = createLogger('model-progress')
 
 export interface Progress {
   report(value: { message?: string; increment?: number }): void
@@ -15,6 +16,14 @@ export interface ProgressOptions<R> {
   task: (progress: Progress, token: CancellationToken) => Thenable<R>
 }
 
+export function formatMessage(title: string | undefined, message: string | undefined, total: number) {
+  let parts = []
+  if (title) parts.push(title)
+  if (message) parts.push(message)
+  if (total) parts.push(total + '%')
+  return parts.join(' ')
+}
+
 export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
   private readonly _onDidFinish = new Emitter<R>()
@@ -23,16 +32,16 @@ export default class ProgressNotification<R> extends Notification {
     super(nvim, {
       kind: 'progress',
       title: option.title,
-      buttons: option.cancellable ? [{ index: 1, text: 'Cancel' }] : undefined
+      closable: option.cancellable
     }, false)
     this.disposables.push(this._onDidFinish)
-    events.on('BufWinLeave', bufnr => {
-      if (bufnr == this.bufnr) {
-        if (this.tokenSource) this.tokenSource.cancel()
-        this._onDidFinish.fire(undefined)
-        this.dispose()
-      }
-    }, null, this.disposables)
+    events.on('BufWinLeave', this.cancelProgress, null, this.disposables)
+  }
+
+  private cancelProgress = (bufnr: any) => {
+    if (bufnr == this.bufnr && this.tokenSource) {
+      this.tokenSource.cancel()
+    }
   }
 
   public async show(preferences: Partial<NotificationPreferences>): Promise<void> {
@@ -40,10 +49,10 @@ export default class ProgressNotification<R> extends Notification {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     this.disposables.push(tokenSource)
     let total = 0
-    if (this.config.buttons || !preferences.disabled) {
+    if (!preferences.disabled) {
       await super.show(preferences)
     } else {
-      logger.warn(`progress window disabled by "notification.disabledProgressSources"`)
+      logger.warn(`progress window disabled by configuration "notification.disabledProgressSources"`)
     }
     task({
       report: p => {
@@ -53,15 +62,13 @@ export default class ProgressNotification<R> extends Notification {
           total += p.increment
           nvim.call('coc#window#set_var', [this.winid, 'percent', `${total}%`], true)
         }
-        if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message.replace(/\r?\n/g, ' ')], true)
+        if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message], true)
       }
     }, tokenSource.token).then(res => {
-      if (this._disposed) return
       this._onDidFinish.fire(res)
       this.dispose()
     }, err => {
-      this.nvim.echoError(err)
-      if (this._disposed) return
+      if (err) this.nvim.echoError(err)
       this._onDidFinish.fire(undefined)
       this.dispose()
     })

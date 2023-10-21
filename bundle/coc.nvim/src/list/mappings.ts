@@ -1,10 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ListMode } from '../types'
+import { ListMode } from './types'
 import window from '../window'
-import ListConfiguration, { validKeys } from './configuration'
+import listConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'
-const logger = require('../util/logger')('list-mappings')
 
 export default class Mappings {
   private insertMappings: Map<string, () => void | Promise<void>> = new Map()
@@ -14,8 +13,7 @@ export default class Mappings {
   private actions: Map<string, (expr?: string) => void | Promise<void>> = new Map()
 
   constructor(private manager: ListManager,
-    private nvim: Neovim,
-    private config: ListConfiguration) {
+    private nvim: Neovim) {
     let { prompt } = manager
     this.addAction('do:switch', async () => {
       await manager.switchMatcher()
@@ -45,10 +43,10 @@ export default class Mappings {
       manager.session?.jumpBack()
     })
     this.addAction('do:previous', async () => {
-      await manager.normal('k')
+      await this.navigate(true)
     })
     this.addAction('do:next', async () => {
-      await manager.normal('j')
+      await this.navigate(false)
     })
     this.addAction('do:defaultaction', async () => {
       await manager.doAction()
@@ -123,6 +121,9 @@ export default class Mappings {
     this.addAction('feedkeys', async expr => {
       await manager.feedkeys(expr)
     })
+    this.addAction('feedkeys!', async expr => {
+      await manager.feedkeys(expr, false)
+    })
     this.addAction('normal', async expr => {
       await manager.normal(expr, false)
     })
@@ -172,15 +173,12 @@ export default class Mappings {
     this.addKeyMapping('normal', '?', 'do:help')
     this.addKeyMapping('normal', ':', 'do:command')
     this.createMappings()
-    config.on('change', () => {
-      this.createMappings()
-    })
   }
 
-  private createMappings(): void {
-    let insertMappings = this.config.get<any>('insertMappings', {})
+  public createMappings(): void {
+    let insertMappings = listConfiguration.get<any>('insertMappings', {})
     this.userInsertMappings = this.fixUserMappings(insertMappings, 'list.insertMappings')
-    let normalMappings = this.config.get<any>('normalMappings', {})
+    let normalMappings = listConfiguration.get<any>('normalMappings', {})
     this.userNormalMappings = this.fixUserMappings(normalMappings, 'list.normalMappings')
   }
 
@@ -200,7 +198,7 @@ export default class Mappings {
     let res: Map<string, string> = new Map()
     for (let [key, value] of Object.entries(mappings)) {
       if (!this.isValidAction(value)) {
-        window.showMessage(`Invalid configuration - unable to support action "${value}" in "${entry}"`, 'warning')
+        void window.showWarningMessage(`Invalid configuration - unable to support action "${value}" in "${entry}"`)
         continue
       }
       if (key.length == 1) {
@@ -221,26 +219,25 @@ export default class Mappings {
               break
             }
           }
-          if (!find) window.showMessage(`Invalid configuration - unable to recognize "${key}" in "${entry}"`, 'warning')
+          if (!find) void window.showWarningMessage(`Invalid configuration - unable to recognize "${key}" in "${entry}"`)
         }
       } else {
-        window.showMessage(`Invalid configuration - unable to recognize key "${key}" in "${entry}"`, 'warning')
+        void window.showWarningMessage(`Invalid configuration - unable to recognize key "${key}" in "${entry}"`)
       }
     }
     return res
   }
 
+  public async navigate(up: boolean): Promise<boolean> {
+    let ui = this.manager.session?.ui
+    if (!ui) return false
+    await ui.moveCursor(up ? -1 : 1)
+    return true
+  }
+
   public async doInsertKeymap(key: string): Promise<boolean> {
-    let nextKey = this.config.nextKey
-    let previousKey = this.config.previousKey
-    if (key == nextKey) {
-      this.manager?.session.ui.moveDown()
-      return true
-    }
-    if (key == previousKey) {
-      this.manager?.session.ui.moveUp()
-      return true
-    }
+    if (key === listConfiguration.nextKey) return await this.navigate(false)
+    if (key === listConfiguration.previousKey) return await this.navigate(true)
     let expr = this.userInsertMappings.get(key)
     if (expr) {
       let fn = this.getAction(expr)
@@ -304,9 +301,10 @@ export default class Mappings {
   }
 
   private scrollPreview(dir: 'up' | 'down'): void {
+    const floatPreview = listConfiguration.get<boolean>('floatPreview', false)
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.call('coc#list#scroll_preview', [dir], true)
+    nvim.call('coc#list#scroll_preview', [dir, floatPreview], true)
     nvim.command('redraw', true)
     nvim.resumeNotification(false, true)
   }

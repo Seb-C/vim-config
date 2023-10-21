@@ -1,13 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import { Variable, VariableResolver } from "./parser"
-import WorkspaceFolderController from '../core/workspaceFolder'
 import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
-const logger = require('../util/logger')('snippets-variable')
+import WorkspaceFolderController from '../core/workspaceFolder'
+import { path } from '../util/node'
+import { hasOwnProperty } from '../util/object'
+import { toText } from '../util/string'
+import { Variable, VariableResolver } from "./parser"
 
-function padZero(n: number): string {
+export function padZero(n: number): string {
   return n < 10 ? '0' + n : n.toString()
 }
 
@@ -135,13 +136,13 @@ export class SnippetVariableResolver implements VariableResolver {
       if (s) return s
       let comments = await nvim.eval('&comments') as string
       let { single } = parseComments(comments)
-      return single ?? ''
+      return single
     }
     if (['BLOCK_COMMENT_START', 'BLOCK_COMMENT_END'].includes(name)) {
       let comments = await nvim.eval('&comments') as string
       let { start, end } = parseComments(comments)
-      if (name === 'BLOCK_COMMENT_START') return start ?? ''
-      if (name === 'BLOCK_COMMENT_END') return end ?? ''
+      if (name === 'BLOCK_COMMENT_START') return start
+      if (name === 'BLOCK_COMMENT_END') return end
     }
   }
 
@@ -150,7 +151,7 @@ export class SnippetVariableResolver implements VariableResolver {
     let resolved = this._variableToValue[name]
     if (resolved != null) return resolved.toString()
     // resolve known value
-    if (this._variableToValue.hasOwnProperty(name)) {
+    if (hasOwnProperty(this._variableToValue, name)) {
       let value = await this.resolveValue(name)
       if (!value && variable.children.length) {
         return variable.toString()

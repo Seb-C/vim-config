@@ -1,24 +1,40 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
 import Document from '../model/document'
-import { comparePosition } from '../util/position'
+import { IConfigurationChangeEvent } from '../types'
+import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import CursorSession from './session'
+import commands from '../commands'
+import CursorSession, { CursorsConfig } from './session'
 import { getVisualRanges, splitRange } from './util'
-const logger = require('../util/logger')('cursors')
+
+export type CursorPosition = [number, number, number, number]
 
 export default class Cursors {
   private sessionsMap: Map<number, CursorSession> = new Map()
   private disposables: Disposable[] = []
+  private config: CursorsConfig
   constructor(private nvim: Neovim) {
+    this.loadConfiguration()
+    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     workspace.onDidCloseTextDocument(e => {
       let session = this.getSession(e.bufnr)
       if (!session) return
       this.sessionsMap.delete(e.bufnr)
-      session.cancel()
+      session.dispose()
     }, null, this.disposables)
+    this.disposables.push(commands.registerCommand('editor.action.addRanges', async (ranges: Range[]) => {
+      await this.addRanges(ranges)
+    }, null, true))
+  }
+
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
+    if (!e || e.affectsConfiguration('cursors')) {
+      let config = workspace.initialConfiguration
+      this.config = config.get<CursorsConfig>('cursors')
+    }
   }
 
   public cancel(uri: number | string): void {
@@ -41,26 +57,24 @@ export default class Cursors {
     let doc = workspace.getAttachedDocument(bufnr)
     let { nvim } = this
     let session = this.createSession(doc)
-    let pos = await window.getCursorPosition()
     let range: Range
     if (kind == 'operator') {
-      await nvim.command(`normal! ${mode == 'line' ? `'[` : '`['}`)
-      let start = await window.getCursorPosition()
-      await nvim.command(`normal! ${mode == 'line' ? `']` : '`]'}`)
-      let end = await window.getCursorPosition()
-      await window.moveTo(pos)
-      let relative = comparePosition(start, end)
-      // do nothing for empty range
-      if (relative == 0) return
-      if (relative >= 0) [start, end] = [end, start]
-      // include end character
-      let line = doc.getline(end.line)
-      if (end.character < line.length) {
-        end.character = end.character + 1
+      let res = await nvim.eval(`[getpos("'["),getpos("']")]`) as [CursorPosition, CursorPosition]
+      if (mode == 'char') {
+        let start = doc.getPosition(res[0][1], res[0][2])
+        let end = doc.getPosition(res[1][1], res[1][2] + 1)
+        let ranges = splitRange(doc, Range.create(start, end))
+        session.addRanges(ranges)
+      } else {
+        let ranges: Range[] = []
+        for (let i = res[0][1] - 1; i <= res[1][1] - 1; i++) {
+          let line = doc.getline(i)
+          ranges.push(Range.create(i, 0, i, line.length))
+        }
+        session.addRanges(ranges)
       }
-      let ranges = splitRange(doc, Range.create(start, end))
-      session.addRanges(ranges)
     } else if (kind == 'word') {
+      let pos = await window.getCursorPosition()
       range = doc.getWordRangeAtPosition(pos)
       if (!range) {
         let line = doc.getline(pos.line)
@@ -73,6 +87,7 @@ export default class Cursors {
       session.addRange(range)
       await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
     } else if (kind == 'position') {
+      let pos = await window.getCursorPosition()
       // make sure range contains character for highlight
       let line = doc.getline(pos.line)
       if (pos.character >= line.length) {
@@ -99,7 +114,7 @@ export default class Cursors {
     let { bufnr } = doc
     let session = this.getSession(bufnr)
     if (session) return session
-    session = new CursorSession(this.nvim, doc)
+    session = new CursorSession(this.nvim, doc, this.config)
     this.sessionsMap.set(bufnr, session)
     session.onDidCancel(() => {
       session.dispose()

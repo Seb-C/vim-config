@@ -1,6 +1,7 @@
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll, wait } from '../../util'
+import { CancellationError } from '../../util/errors'
 
 const disposables: Disposable[] = []
 afterEach(async () => {
@@ -18,6 +19,48 @@ describe('register handler', () => {
     await events.fire('CursorMoved', [1, [1, 1]])
     expect(events.insertMode).toBe(false)
     expect(fn).toBeCalledTimes(2)
+  })
+
+  it('should not add insertChar with TextChangedI after PumInsert', async () => {
+    await events.fire('PumInsert', ['foo'])
+    let pre: string
+    events.on('TextChangedP', (_bufnr, info) => {
+      pre = info.pre
+    })
+    await events.fire('TextChangedI', [1, {
+      lnum: 1,
+      col: 4,
+      line: 'foo',
+      changedtick: 1,
+    }])
+    expect(pre).toBe('foo')
+  })
+
+  it('should track slow handler', async () => {
+    let fn = jest.fn()
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      fn()
+    })
+    events.on('BufWritePre', async () => {
+      await wait(50)
+    }, null, disposables)
+    events.timeout = 20
+    events.requesting = true
+    await events.fire('BufWritePre', [1, '', 1])
+    spy.mockRestore()
+    events.requesting = false
+    events.timeout = 1000
+    expect(fn).toBeCalled()
+  })
+
+  it('should on throw on handler error', async () => {
+    events.on('BufWritePre', async () => {
+      throw new Error('test error')
+    }, null, disposables)
+    events.on('BufWritePre', () => {
+      throw new CancellationError()
+    }, null, disposables)
+    await events.fire('BufWritePre', [1, '', 1])
   })
 
   it('should register single handler', async () => {
