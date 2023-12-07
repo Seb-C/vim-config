@@ -12,5 +12,11 @@
                 "command": ["golangci-lint", "run", "--out-format", "json", "--issues-exit-code=1"]
             }
         }
-    }
+    },
+    "rust-analyzer.inlayHints.chainingHints.enable": false,
+    "rust-analyzer.inlayHints.closingBraceHints.enable": false,
+    "rust-analyzer.inlayHints.expressionAdjustmentHints.hideOutsideUnsafe": true,
+    "rust-analyzer.inlayHints.parameterHints.enable": false,
+    "rust-analyzer.inlayHints.typeHints.enable": false,
+    "rust-analyzer.inlayHints.typeHints.hideNamedConstructor": true
 }
