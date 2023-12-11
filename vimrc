@@ -1,8 +1,8 @@
 scriptencoding utf-8
 " Plugin manager
 execute pathogen#infect()
-syntax on
 filetype plugin indent on
+syntax on
 
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
