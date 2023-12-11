@@ -21,3 +21,9 @@ To have `golangci-lint` integration:
 ```
 go install github.com/nametake/golangci-lint-langserver@latest
 ```
+
+To have rust working:
+```
+rustup component add rust-analyzer
+rustup component add rust-src
+```
