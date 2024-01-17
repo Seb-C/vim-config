@@ -140,6 +140,9 @@ set softtabstop=4
 set shiftwidth=4
 set tabstop=4
 
+" Stop annoying reindentation when editing, without disabling reindenting with '='
+autocmd BufRead,BufNewFile * set indentkeys=''
+
 set ruler
 
 set backspace=indent,eol,start
