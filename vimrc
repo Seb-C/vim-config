@@ -90,7 +90,7 @@ let javascript_enable_domhtmlcss = 1
 let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 autocmd BufRead,BufNewFile *.pcss set filetype=scss
-autocmd BufRead,BufNewFile *.pcss set tabstop=4
+autocmd BufRead,BufNewFile * set tabstop=4
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
