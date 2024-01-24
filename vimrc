@@ -141,7 +141,7 @@ set shiftwidth=4
 set tabstop=4
 
 " Stop annoying reindentation when editing, without disabling reindenting with '='
-autocmd BufRead,BufNewFile * set indentkeys=''
+autocmd BufRead,BufNewFile *.html set indentkeys=''
 
 set ruler
 
