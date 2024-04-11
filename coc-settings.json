@@ -20,5 +20,6 @@
     "rust-analyzer.inlayHints.typeHints.enable": false,
     "rust-analyzer.inlayHints.typeHints.hideNamedConstructor": true,
     "eslint.validate": ["javascript", "typescript", "javascriptreact", "typescriptreact"],
+    "eslint.experimental.useFlatConfig": true,
     "diagnostic.level": "warning"
 }
