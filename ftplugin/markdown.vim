@@ -1,6 +1,6 @@
 " Moving line by line even if wrapped
-" map <buffer> j gj
-" map <buffer> k gk
+map <buffer> j gj
+map <buffer> k gk
 
 " Adds undo points on every punctuation
 inoremap <buffer> . .<C-g>u
