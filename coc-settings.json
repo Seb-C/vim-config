@@ -4,6 +4,7 @@
     "notification.disabledProgressSources": ["*"],
     "suggest.enablePreselect": false,
     "suggest.noselect": true,
+    "inlayHint.enable": false,
     "languageserver": {
         "golangci-lint-languageserver": {
             "command": "golangci-lint-langserver",
