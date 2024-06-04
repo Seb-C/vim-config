@@ -14,7 +14,7 @@ shopt -s expand_aliases"
 
 Coc extensions to install:
 ```
-CocInstall coc-css coc-phpls coc-docker coc-eslint coc-git coc-go coc-html coc-json coc-sh coc-sql coc-xml coc-yaml coc-svg coc-tsserver coc-rust-analyzer
+CocInstall coc-css coc-phpls coc-docker coc-eslint coc-git coc-go coc-html coc-json coc-sh coc-sql coc-xml coc-yaml coc-svg coc-tsserver coc-rust-analyzer coc-clangd
 ```
 
 To have `golangci-lint` integration:
