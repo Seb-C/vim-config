@@ -1,5 +1,4 @@
 {
-    "diagnostic.locationlist": false,
     "typescript.showUnused": false,
     "notification.disabledProgressSources": ["*"],
     "suggest.enablePreselect": false,
