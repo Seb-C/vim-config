@@ -68,7 +68,7 @@ let g:languagetool_jar='$HOME/.vim/languagetool/languagetool-commandline.jar'
 let g:languagetool_lang='en'
 
 " Vim file search settings
-set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.build.*\ --ignore=*.min.*\ --ignore=*.svg\ --ignore=*.xml\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=sdk\ --ignore=cordova\ --ignore=dist\ --ignore=node_modules\ --ignore=vendor\ --ignore=.firefox-profile\ --hidden
+set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.build.*\ --ignore=*.min.*\ --ignore=*.svg\ --ignore=*.xml\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=sdk\ --ignore=cordova\ --ignore=dist\ --ignore=node_modules\ --ignore=.terraform\ --ignore=vendor\ --ignore=.firefox-profile\ --hidden
 set grepformat=%f:%l:%c:%m
 cnoremap <C-G> silent lgrep! -Q 
 
