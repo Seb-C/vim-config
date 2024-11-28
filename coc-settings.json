@@ -35,7 +35,5 @@
     "go.goplsPath": "/home/sebastien/go/bin/gopls",
     "go.disable": {
         "snippetCompletion": true
-    },
-    "zig.enabled": true,
-    "zig.path": "/home/sebastien/.zig/zls"
+    }
 }
