@@ -21,6 +21,10 @@
             ],
             "initializationOptions": {},
             "settings": {}
+        },
+        "swift": {
+            "command": "sourcekit-lsp",
+            "filetypes": ["swift"]
         }
     },
     "rust-analyzer.inlayHints.chainingHints.enable": false,
