@@ -92,7 +92,7 @@ let g:vim_json_syntax_conceal = 0
 autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
 autocmd BufRead,BufNewFile *.pcss set filetype=scss
 autocmd BufRead,BufNewFile * set tabstop=4
-autocmd BufRead,BufNewFile terraform.tfvars set filetype=tf
+autocmd BufRead,BufNewFile terraform.tfvars set filetype=terraform-vars syntax=terraform
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>

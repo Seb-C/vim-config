@@ -17,7 +17,7 @@
             "args": ["serve"],
             "filetypes": [
                 "terraform",
-                "tf"
+                "terraform-vars"
             ],
             "initializationOptions": {},
             "settings": {}
