@@ -26,61 +26,51 @@ let lsp_diagnostics_float_insert_mode_enabled = 0
 let g:lsp_diagnostics_virtual_text_enabled = 0
 let g:lsp_semantic_delay = 0
 
-if executable('sourcekit-lsp')
-  au User lsp_setup call lsp#register_server({
-    \ 'name': 'swift',
-    \ 'cmd': {server_info->['sourcekit-lsp']},
-    \ 'allowlist': ['swift'],
-  \ })
-endif
+au User lsp_setup call lsp#register_server({
+	\ 'name': 'swift',
+	\ 'cmd': {server_info->['sourcekit-lsp']},
+	\ 'allowlist': ['swift'],
+\ })
 
-if executable('gopls')
-  au User lsp_setup call lsp#register_server({
-    \ 'name': 'go',
-    \ 'cmd': {server_info->['gopls']},
-    \ 'allowlist': ['go'],
-  \ })
-endif
-if executable('golangci-lint-langserver')
-  au User lsp_setup call lsp#register_server({
-    \ 'name': 'golangci-lint',
-    \ 'cmd': {server_info->['golangci-lint-langserver']},
-    \ 'initialization_options': {
-      \ 'command': ['golangci-lint', 'run', '--out-format', 'json', '--issues-exit-code=1']
-    \ },
-    \ 'allowlist': ['go'],
-  \ })
-endif
+au User lsp_setup call lsp#register_server({
+	\ 'name': 'go',
+	\ 'cmd': {server_info->['gopls']},
+	\ 'allowlist': ['go'],
+\ })
+au User lsp_setup call lsp#register_server({
+	\ 'name': 'golangci-lint',
+	\ 'cmd': {server_info->['golangci-lint-langserver']},
+	\ 'initialization_options': {
+		\ 'command': ['golangci-lint', 'run', '--out-format', 'json', '--issues-exit-code=1']
+	\ },
+	\ 'allowlist': ['go'],
+\ })
 
-if executable('terraform-ls')
-  au user lsp_setup call lsp#register_server({
-    \ 'name': 'terraform',
-    \ 'cmd': {server_info->['terraform-ls']},
-    \ 'allowlist': ['terraform', terraform-vars'],
-  \ })
-endif
+au user lsp_setup call lsp#register_server({
+	\ 'name': 'terraform',
+	\ 'cmd': {server_info->['terraform-ls']},
+	\ 'allowlist': ['terraform', 'terraform-vars'],
+\ })
 
-if executable('npx')
-  au user lsp_setup call lsp#register_server({
-    \ 'name': 'json',
-    \ 'cmd': {server_info->['npx', 'vscode-json-languageserver', '--stdio']},
-    \ 'allowlist': ['json'],
-  \ })
-endif
+au user lsp_setup call lsp#register_server({
+	\ 'name': 'json',
+	\ 'cmd': {server_info->['npx', 'vscode-json-languageserver', '--stdio']},
+	\ 'allowlist': ['json'],
+\ })
 
 " Per-project settings
 if substitute(getcwd(), '^.*/', '', '') == "astral-divide"
-  au User lsp_setup call lsp#register_server({
-    \ 'name': 'go',
-    \ 'cmd': {server_info->['make', 'lsp']},
-    \ 'allowlist': ['go'],
-  \ })
-  au User lsp_setup call lsp#register_server({
-    \ 'name': 'golangci-lint',
-    \ 'cmd': {server_info->['golangci-lint-langserver']},
-    \ 'initialization_options': {
-      \ 'command': ['make', 'lint-for-lsp']
-    \ },
-    \ 'allowlist': ['go'],
-  \ })
+	au User lsp_setup call lsp#register_server({
+		\ 'name': 'go',
+		\ 'cmd': {server_info->['make', 'lsp']},
+		\ 'allowlist': ['go'],
+	\ })
+	au User lsp_setup call lsp#register_server({
+		\ 'name': 'golangci-lint',
+		\ 'cmd': {server_info->['golangci-lint-langserver']},
+		\ 'initialization_options': {
+			\ 'command': ['make', 'lint-for-lsp']
+		\ },
+		\ 'allowlist': ['go'],
+	\ })
 endif
