@@ -6,6 +6,7 @@ syntax on
 
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
+source ~/.vim/config/lsp.vim
 
 let mapleader = "\\"
 
@@ -33,28 +34,6 @@ let $BASH_ENV = "~/.bash_aliases"
 
 " create some aliases just for simplicity
 command Ghistory Agit
-
-" Auto completion settings
-set omnifunc=syntaxcomplete#Complete
-set completeopt=menu,noinsert,menuone,preview
-set complete-=i
-let g:acp_EnableAtStartup = 1
-let g:acp_completeoptPreview = 1
-let g:acp_completeOption = &complete
-
-" Keybindings for coc.nvim
-nmap <Leader>t <Plug>(coc-type-definition)
-nmap <Leader>d <Plug>(coc-type-definition)
-nmap <Leader>i <Plug>(coc-implementation)
-nmap <Leader>c <Plug>(coc-references)
-nmap <Leader>r <Plug>(coc-rename)
-nmap <Leader>k <Plug>(coc-diagnostic-prev)
-nmap <Leader>j <Plug>(coc-diagnostic-next)
-nmap <Leader>f <Plug>(coc-fix-current)
-nmap <Leader>l :CocDiagnostics<CR>
-nmap <Leader>o :CocOutline<CR>
-
-inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Vim command-mode autocompletion
 set wildmenu

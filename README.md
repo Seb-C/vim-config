@@ -7,14 +7,8 @@ git clone https://github.com/Seb-C/vim-config.git ~/.vim
 ```
 
 To enable bash_aliases with `:!`, you must add this line on top of your `.bash_aliases`: 
-
 ```
 shopt -s expand_aliases"
-```
-
-Coc extensions to install:
-```
-CocInstall coc-css coc-phpls coc-docker coc-eslint coc-git coc-go coc-html coc-json coc-sh coc-sql coc-xml coc-yaml coc-svg coc-tsserver coc-rust-analyzer coc-clangd
 ```
 
 To have `golangci-lint` integration:
@@ -26,4 +20,9 @@ To have rust working:
 ```
 rustup component add rust-analyzer
 rustup component add rust-src
+```
+
+Language server for json:
+```
+npm install -g vscode-json-languageserver
 ```
