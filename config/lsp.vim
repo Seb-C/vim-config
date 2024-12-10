@@ -48,7 +48,7 @@ au User lsp_setup call lsp#register_server({
 
 au user lsp_setup call lsp#register_server({
 	\ 'name': 'terraform',
-	\ 'cmd': {server_info->['terraform-ls']},
+	\ 'cmd': {server_info->['terraform-ls', 'serve']},
 	\ 'allowlist': ['terraform', 'terraform-vars'],
 \ })
 
