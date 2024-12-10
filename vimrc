@@ -191,8 +191,3 @@ nnoremap <silent> <C-L> :noh<CR><C-L>
 " Showing tabs
 set listchars=tab:▸\ 
 set list
-
-if filereadable(expand('~/.vim/local_config.vim'))
-    source ~/.vim/local_config.vim
-endif
-
