@@ -25,6 +25,7 @@ let g:lsp_diagnostics_float_delay = 250
 let lsp_diagnostics_float_insert_mode_enabled = 0
 let g:lsp_diagnostics_virtual_text_enabled = 0
 let g:lsp_semantic_delay = 0
+let g:lsp_text_document_did_save_delay = 0
 
 au User lsp_setup call lsp#register_server({
 	\ 'name': 'swift',
