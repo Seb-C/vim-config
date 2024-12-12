@@ -27,6 +27,16 @@ let g:lsp_diagnostics_virtual_text_enabled = 0
 let g:lsp_semantic_delay = 0
 let g:lsp_text_document_did_save_delay = 0
 
+" Plugins
+au User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
+	\ 'name': 'file',
+	\ 'allowlist': ['*'],
+	\ 'priority': 10,
+	\ 'completor': function('asyncomplete#sources#file#completor')
+\ }))
+
+" LSP servers
+
 au User lsp_setup call lsp#register_server({
 	\ 'name': 'swift',
 	\ 'cmd': {server_info->['sourcekit-lsp']},

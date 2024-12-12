@@ -1,18 +1,44 @@
 scriptencoding utf-8
-" Plugin manager
-execute pathogen#infect()
-filetype plugin indent on
-syntax on
+
+" Plugin manager, use :PlugInstall to apply changes
+call plug#begin()
+	" Git-related
+	Plug 'tpope/vim-fugitive'
+	Plug 'airblade/vim-gitgutter'
+
+	" File browsing
+	Plug 'preservim/nerdtree'
+	Plug 'Xuyuanp/nerdtree-git-plugin'
+
+	" LSP integration
+	Plug 'prabirshrestha/vim-lsp'
+	Plug 'prabirshrestha/asyncomplete.vim'
+	Plug 'prabirshrestha/asyncomplete-lsp.vim'
+	Plug 'prabirshrestha/asyncomplete-file.vim'
+
+	" Languages integration
+	Plug 'sheerun/vim-polyglot' " Highlighting for multiple languages
+	Plug 'editorconfig/editorconfig-vim'
+	Plug 'vim-vdebug/vdebug'
+
+	" Various tools and commands
+	Plug 'tpope/vim-surround'
+	Plug 'mbbill/undotree'
+	Plug 'KabbAmine/vCoolor.vim'
+	Plug 'ap/vim-css-color'
+
+	" Quality of life
+	Plug 'vim-airline/vim-airline' " Better status bar on the bottom
+	Plug 'vim-scripts/CSApprox' " Color scheme compatibility
+	Plug 'romainl/vim-qf' " Quickfix window improvements
+	Plug 'ntpeters/vim-better-whitespace' " Highlights trailing whitespaces
+call plug#end()
 
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
 source ~/.vim/config/lsp.vim
 
 let mapleader = "\\"
-
-" Tabularize custom configuration
-autocmd VimEnter * AddTabularPattern , /[^,]\+,
-cnoreabbrev Align Tabularize
 
 " Storing undo
 set undodir=$HOME/.vim/undo
@@ -21,10 +47,6 @@ set undolevels=1000
 set undoreload=1000
 command Undotree UndotreeShow
 
-" Tagbar
-let g:tagbar_ctags_bin = '/usr/local/bin/ctags'
-noremap <C-x><C-t> :TagbarToggle<CR>
-
 " vim-qf config
 let g:qf_window_bottom = 0
 let g:qf_loclist_window_bottom = 0
@@ -32,19 +54,20 @@ let g:qf_loclist_window_bottom = 0
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
-" create some aliases just for simplicity
-command Ghistory Agit
+" Native auto completion settings
+set completeopt=menu,noinsert,menuone,preview
+set complete-=i
+
+" Custom alias
+command Gblame Git blame
 
 " Vim command-mode autocompletion
+let dfgdfg = "./plugg"
 set wildmenu
 set wildmode=full
 let &wildcharm = &wildchar
 cnoremap <C-y> <Down>
 cnoremap <C-x> <Up>
-
-" LanguageTool settings
-let g:languagetool_jar='$HOME/.vim/languagetool/languagetool-commandline.jar'
-let g:languagetool_lang='en'
 
 " Vim file search settings
 set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.build.*\ --ignore=*.min.*\ --ignore=*.svg\ --ignore=*.xml\ --ignore=*.log\ --ignore=cache\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=sdk\ --ignore=cordova\ --ignore=dist\ --ignore=node_modules\ --ignore=.terraform\ --ignore=vendor\ --ignore=.firefox-profile\ --hidden
@@ -64,19 +87,13 @@ set path=$PWD/**
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
 " Languages plugins settings
-autocmd FileType scss set iskeyword+=-
-autocmd FileType blade set iskeyword-=\$
-let javascript_enable_domhtmlcss = 1
-let g:vim_json_syntax_conceal = 0
-autocmd BufRead,BufNewFile *.js set filetype=javascript.jsx
-autocmd BufRead,BufNewFile *.pcss set filetype=scss
-autocmd BufRead,BufNewFile * set tabstop=4
 autocmd BufRead,BufNewFile terraform.tfvars set filetype=terraform-vars syntax=terraform
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
+let g:NERDTreeStatusline = 'NERDTree'
 let NERDTreeShowHidden=1
 let NERDTreeMapOpenSplit='s'
 let NERDTreeMapOpenVSplit='v'
@@ -156,6 +173,7 @@ let g:airline_right_sep=''
 let g:airline_symbols_branch = '⇒'
 let g:airline_section_b='%{fnamemodify(getcwd(), '':t'')} > %{airline#util#wrap(airline#extensions#branch#get_head(),0)}'
 let g:airline_section_y=''
+let g:airline_section_z='%p%% ln %l/%L :%v'
 let g:airline_section_warning=''
 set fillchars=vert:▚
 
