@@ -87,7 +87,7 @@ set path=$PWD/**
 autocmd InsertLeave * if pumvisible() == 0|pclose|endif
 
 " Languages plugins settings
-autocmd BufRead,BufNewFile terraform.tfvars set filetype=terraform-vars syntax=terraform
+autocmd BufRead,BufNewFile terraform.tfvars set filetype=terraform.vars
 
 " NERDTree
 nnoremap <silent> <C-N> :NERDTreeToggle<CR>
