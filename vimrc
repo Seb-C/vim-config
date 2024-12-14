@@ -1,7 +1,18 @@
 scriptencoding utf-8
 
+" Prevent vim-polyglot from breaking vim-lsp's float windows.
+" Must be declared before loading the plugins in order to work.
+set nocompatible
+let g:polyglot_disabled = ['sensible']
+
 " Plugin manager, use :PlugInstall to apply changes
 call plug#begin()
+	" LSP integration
+	Plug 'prabirshrestha/vim-lsp'
+	Plug 'prabirshrestha/asyncomplete.vim'
+	Plug 'prabirshrestha/asyncomplete-lsp.vim'
+	Plug 'prabirshrestha/asyncomplete-file.vim'
+
 	" Git-related
 	Plug 'tpope/vim-fugitive'
 	Plug 'airblade/vim-gitgutter'
@@ -9,12 +20,6 @@ call plug#begin()
 	" File browsing
 	Plug 'preservim/nerdtree'
 	Plug 'Xuyuanp/nerdtree-git-plugin'
-
-	" LSP integration
-	Plug 'prabirshrestha/vim-lsp'
-	Plug 'prabirshrestha/asyncomplete.vim'
-	Plug 'prabirshrestha/asyncomplete-lsp.vim'
-	Plug 'prabirshrestha/asyncomplete-file.vim'
 
 	" Languages integration
 	Plug 'sheerun/vim-polyglot' " Highlighting for multiple languages
