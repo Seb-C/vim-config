@@ -32,9 +32,11 @@ call plug#begin()
 	Plug 'KabbAmine/vCoolor.vim'
 	Plug 'ap/vim-css-color'
 
-	" Quality of life
+	" Color and style
+	Plug 'morhetz/gruvbox' " Color scheme itself
 	Plug 'vim-airline/vim-airline' " Better status bar on the bottom
-	Plug 'vim-scripts/CSApprox' " Color scheme compatibility
+
+	" Quality of life
 	Plug 'romainl/vim-qf' " Quickfix window improvements
 	Plug 'ntpeters/vim-better-whitespace' " Highlights trailing whitespaces
 call plug#end()
@@ -166,7 +168,6 @@ set notimeout ttimeout
 
 set t_Co=256
 set background=dark
-let g:gruvbox_guisp_fallback = "bg"
 colorscheme gruvbox
 
 highlight ExtraWhitespace ctermbg=208
