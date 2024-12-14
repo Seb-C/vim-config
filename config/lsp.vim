@@ -15,17 +15,29 @@ nmap <Leader>a <Plug>(lsp-code-action-float)
 nmap <Leader>f :LspCodeAction quickfix<CR>
 nmap <Leader>l :LspDocumentDiagnostics<CR>
 
-set signcolumn=auto
-let g:lsp_document_code_action_signs_enabled = 0
+" Reduce time to feedback after edit
+let g:lsp_semantic_delay = 50
+
+" Customize highlight (mentions of the hovered symbol)
 let g:lsp_document_highlight_enabled = 1
 let g:lsp_document_highlight_delay = 500
+let g:lsp_diagnostics_highlights_insert_mode_enabled = 0
+
+" Configure how to set the errors, warnings...
 let g:lsp_diagnostics_enabled = 1
 let g:lsp_diagnostics_float_cursor = 1
 let g:lsp_diagnostics_float_delay = 250
-let lsp_diagnostics_float_insert_mode_enabled = 0
+let g:lsp_diagnostics_float_insert_mode_enabled = 0
 let g:lsp_diagnostics_virtual_text_enabled = 0
-let g:lsp_semantic_delay = 0
-let g:lsp_text_document_did_save_delay = 0
+
+" Configuring signs column
+set signcolumn=auto
+let g:lsp_document_code_action_signs_enabled = 0
+let g:lsp_diagnostics_signs_insert_mode_enabled = 1
+let g:lsp_diagnostics_signs_error = {'text': '✗'}
+let g:lsp_diagnostics_signs_warning = {'text': '⚠️'}
+let g:lsp_diagnostics_signs_hint = {'text': '🔍'}
+let g:lsp_diagnostics_signs_information = {'text': '🛈'}
 
 " Plugins
 au User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
