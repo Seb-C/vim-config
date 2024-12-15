@@ -194,3 +194,20 @@ nnoremap <silent> <C-L> :noh<CR><C-L>
 " Showing tabs
 set listchars=tab:▸\ 
 set list
+
+" Basic netrw settings
+let g:netrw_liststyle=3
+let g:netrw_banner = 0
+let g:netrw_localcopydircmd = 'cp -r'
+let g:netrw_browse_split = 0
+let g:netrw_altfile = 0
+let g:netrw_hide = 0
+
+" Workaround to keep the netrw cursor position when reopening
+let g:last_netrw_position = 3
+nmap <Leader>n :exec 'Explore' getcwd()<CR>:exec g:last_netrw_position<CR>
+autocmd FileType netrw autocmd BufLeave <buffer> let g:last_netrw_position = line(".")
+
+" TODO git integration with signs? https://vim-jp.org/vimdoc-en/sign.html
+" TODO check and configure basic actions
+" TODO replace main shortcut to open it (CTRL-N)?
