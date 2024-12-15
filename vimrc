@@ -74,6 +74,9 @@ set complete-=i
 " Custom alias
 command Gblame Git blame
 
+" Update git signs immediately on save
+autocmd BufWritePost * GitGutter
+
 " Vim command-mode autocompletion
 let dfgdfg = "./plugg"
 set wildmenu
