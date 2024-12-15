@@ -178,7 +178,7 @@ set notimeout ttimeout
 set t_Co=256
 set termguicolors
 set background=dark
-colorscheme gruvbox8_soft
+colorscheme gruvbox8
 
 highlight ExtraWhitespace ctermbg=208
 
