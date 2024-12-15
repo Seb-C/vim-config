@@ -39,6 +39,10 @@ let g:lsp_diagnostics_signs_warning = {'text': '⚠️'}
 let g:lsp_diagnostics_signs_hint = {'text': '🔍'}
 let g:lsp_diagnostics_signs_information = {'text': '🛈'}
 
+" Enable logging when needed
+"let g:lsp_log_file = expand('~/.vim/vim-lsp.log')
+"let g:lsp_log_verbose = 1
+
 " Plugins
 au User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
 	\ 'name': 'file',
@@ -53,6 +57,9 @@ au User lsp_setup call lsp#register_server({
 	\ 'name': 'swift',
 	\ 'cmd': {server_info->['sourcekit-lsp']},
 	\ 'allowlist': ['swift'],
+	\ 'initialization_options': {
+		\ "swiftPublishDiagnosticsDebounceDuration": 0,
+	\ },
 \ })
 
 au User lsp_setup call lsp#register_server({
