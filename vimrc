@@ -5,6 +5,12 @@ scriptencoding utf-8
 set nocompatible
 let g:polyglot_disabled = ['sensible']
 
+" Must be configured before loading the gruvbox plugin
+let g:gruvbox_bold = 1
+let g:gruvbox_italics = 0
+let g:gruvbox_italicize_strings = 0
+let g:gruvbox_plugin_hi_groups = 0 " Breaks compatibility with NERDTree
+
 " Plugin manager, use :PlugInstall to apply changes
 call plug#begin()
 	" LSP integration
@@ -33,7 +39,7 @@ call plug#begin()
 	Plug 'ap/vim-css-color'
 
 	" Color and style
-	Plug 'morhetz/gruvbox' " Color scheme itself
+	Plug 'lifepillar/vim-gruvbox8' " Color scheme itself
 	Plug 'vim-airline/vim-airline' " Better status bar on the bottom
 
 	" Quality of life
@@ -167,8 +173,9 @@ set timeoutlen=200
 set notimeout ttimeout
 
 set t_Co=256
+set termguicolors
 set background=dark
-colorscheme gruvbox
+colorscheme gruvbox8_soft
 
 highlight ExtraWhitespace ctermbg=208
 
