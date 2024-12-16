@@ -21,9 +21,8 @@ let g:lsp_semantic_delay = 50
 " Prevent closing the diagnostic float window after a while
 set updatetime=0
 
-" Customize highlight (mentions of the hovered symbol)
-let g:lsp_document_highlight_enabled = 1
-let g:lsp_document_highlight_delay = 500
+" Various highlighting settings
+let g:lsp_document_highlight_enabled = 0
 let g:lsp_diagnostics_highlights_insert_mode_enabled = 0
 
 " Configure how to set the errors, warnings...
