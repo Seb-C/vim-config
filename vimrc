@@ -18,9 +18,6 @@ call plug#begin()
 	Plug 'prabirshrestha/asyncomplete.vim'
 	Plug 'prabirshrestha/asyncomplete-lsp.vim'
 	Plug 'prabirshrestha/asyncomplete-file.vim'
-	Plug 'hrsh7th/vim-vsnip'
-	Plug 'hrsh7th/vim-vsnip-integ'
-	Plug 'rafamadriz/friendly-snippets'
 
 	" Git-related
 	Plug 'tpope/vim-fugitive'
