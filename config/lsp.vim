@@ -25,6 +25,10 @@ set updatetime=0
 let g:lsp_document_highlight_enabled = 0
 let g:lsp_diagnostics_highlights_insert_mode_enabled = 0
 
+" Only allow the completion to insert (not remove/replace) in insert mode
+let g:lsp_insert_text_enabled = 1
+let g:lsp_text_edit_enabled = 0
+
 " Configure how to set the errors, warnings...
 let g:lsp_diagnostics_enabled = 1
 let g:lsp_diagnostics_float_cursor = 1
