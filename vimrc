@@ -70,10 +70,6 @@ let g:qf_loclist_window_bottom = 0
 " Enabling aliases (might need to add "shopt -s expand_aliases" in top of ~/.bash_aliases file)
 let $BASH_ENV = "~/.bash_aliases"
 
-" Native auto completion settings
-set completeopt=menu,noinsert,menuone,preview
-set complete-=i
-
 " Custom alias
 command Gblame Git blame
 

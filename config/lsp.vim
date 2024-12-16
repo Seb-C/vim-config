@@ -1,6 +1,6 @@
 " Auto completion settings
 set omnifunc=lsp#complete
-set completeopt=menu,noinsert,menuone,preview
+set completeopt=menu,noinsert,noselect,menuone,preview
 set complete-=i
 
 " Keybindings for vim-lsp
@@ -41,6 +41,11 @@ let g:lsp_diagnostics_signs_error = {'text': '✗'}
 let g:lsp_diagnostics_signs_warning = {'text': '⚠️'}
 let g:lsp_diagnostics_signs_hint = {'text': '🔍'}
 let g:lsp_diagnostics_signs_information = {'text': '🛈'}
+
+" Completion behaviour
+let g:asyncomplete_auto_popup = 1
+let g:asyncomplete_auto_completeopt = 0
+let g:asyncomplete_min_chars = 1
 
 " Enable logging when needed
 "let g:lsp_log_file = expand('~/.vim/vim-lsp.log')
