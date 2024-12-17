@@ -74,6 +74,17 @@ au User lsp_setup call lsp#register_server({
 \ })
 
 au User lsp_setup call lsp#register_server({
+	\ 'name': 'rust',
+	\ 'cmd': {server_info->['rust-analyzer']},
+	\ 'allowlist': ['rust'],
+	\ 'initialization_options': {
+		\ 'completion': {
+			\ 'autoimport': { 'enable': v:true },
+		\ },
+	\ },
+\ })
+
+au User lsp_setup call lsp#register_server({
 	\ 'name': 'go',
 	\ 'cmd': {server_info->['gopls']},
 	\ 'allowlist': ['go'],
