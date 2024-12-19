@@ -1,0 +1,29 @@
+{
+	"suggest.noselect": true,
+	"inlayHint.enable": false,
+	"languageserver": {
+		"go": {
+			"command": "gopls",
+			"filetypes": ["go"],
+		},
+		"golangci-lint-languageserver": {
+			"command": "golangci-lint-langserver",
+			"filetypes": ["go"],
+			"initializationOptions": {
+				"command": ["golangci-lint", "run", "--out-format", "json", "--issues-exit-code=1"]
+			}
+		},
+		"terraform": {
+			"command": "terraform-ls",
+			"args": ["serve"],
+			"filetypes": ["terraform", "terraform.vars"]
+		},
+		"swift": {
+			"command": "sourcekit-lsp",
+			"filetypes": ["swift"],
+			"initializationOptions": {
+				"swiftPublishDiagnosticsDebounceDuration": 0
+			}
+		}
+	}
+}

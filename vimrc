@@ -1,6 +1,6 @@
 scriptencoding utf-8
 
-" Prevent vim-polyglot from breaking vim-lsp's float windows.
+" Prevent vim-polyglot from breaking vim-lsp's float windows. TODO
 " Must be declared before loading the plugins in order to work.
 set nocompatible
 let g:polyglot_disabled = ['sensible']
@@ -10,8 +10,6 @@ let g:gruvbox_bold = 1
 let g:gruvbox_italics = 0
 let g:gruvbox_italicize_strings = 0
 let g:gruvbox_plugin_hi_groups = 0 " Breaks compatibility with NERDTree
-
-source ~/.vim/config/lsp.vim
 
 " Plugin manager, use :PlugInstall to apply changes
 call plug#begin()
@@ -24,7 +22,7 @@ call plug#begin()
 	Plug 'Xuyuanp/nerdtree-git-plugin'
 
 	" Languages integration
-	Plug 'dense-analysis/ale' " LSP integration
+	Plug 'neoclide/coc.nvim', {'branch': 'release'} " LSP integration
 	Plug 'sheerun/vim-polyglot' " Highlighting for multiple languages
 	Plug 'editorconfig/editorconfig-vim'
 	Plug 'vim-vdebug/vdebug'
@@ -48,6 +46,26 @@ source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
 
 let mapleader = "\\"
+
+" Omni complete options
+set omnifunc=syntaxcomplete#Complete
+set completeopt=menu,noinsert,noselect,menuone,preview
+set complete-=i
+
+" rust-analyzer does not work in standalone, could not find the reason
+let g:coc_global_extensions = ['coc-rust-analyzer', 'coc-json']
+
+" Keybindings for coc.nvim
+nmap <Leader>t <Plug>(coc-type-definition)
+nmap <Leader>d <Plug>(coc-type-definition)
+nmap <Leader>i <Plug>(coc-implementation)
+nmap <Leader>c <Plug>(coc-references)
+nmap <Leader>r <Plug>(coc-rename)
+nmap <Leader>k <Plug>(coc-diagnostic-prev)
+nmap <Leader>j <Plug>(coc-diagnostic-next)
+nmap <Leader>f <Plug>(coc-fix-current)
+nmap <Leader>l :CocDiagnostics<CR>
+nmap <Leader>o :CocOutline<CR>
 
 " Storing undo
 set undodir=$HOME/.vim/undo
