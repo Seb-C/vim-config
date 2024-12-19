@@ -11,14 +11,10 @@ let g:gruvbox_italics = 0
 let g:gruvbox_italicize_strings = 0
 let g:gruvbox_plugin_hi_groups = 0 " Breaks compatibility with NERDTree
 
+source ~/.vim/config/lsp.vim
+
 " Plugin manager, use :PlugInstall to apply changes
 call plug#begin()
-	" LSP integration
-	Plug 'prabirshrestha/vim-lsp'
-	Plug 'prabirshrestha/asyncomplete.vim'
-	Plug 'prabirshrestha/asyncomplete-lsp.vim'
-	Plug 'prabirshrestha/asyncomplete-file.vim'
-
 	" Git-related
 	Plug 'tpope/vim-fugitive'
 	Plug 'airblade/vim-gitgutter'
@@ -28,6 +24,7 @@ call plug#begin()
 	Plug 'Xuyuanp/nerdtree-git-plugin'
 
 	" Languages integration
+	Plug 'dense-analysis/ale' " LSP integration
 	Plug 'sheerun/vim-polyglot' " Highlighting for multiple languages
 	Plug 'editorconfig/editorconfig-vim'
 	Plug 'vim-vdebug/vdebug'
@@ -49,7 +46,6 @@ call plug#end()
 
 source ~/.vim/config/sessions.vim
 source ~/.vim/config/bad-habits.vim
-source ~/.vim/config/lsp.vim
 
 let mapleader = "\\"
 

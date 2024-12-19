@@ -1,128 +1,108 @@
-" Auto completion settings
-set omnifunc=lsp#complete
+set omnifunc=ale#completion#OmniFunc
 set completeopt=menu,noinsert,noselect,menuone,preview
 set complete-=i
 
-" Keybindings for vim-lsp
-nmap <Leader>t <Plug>(lsp-type-definition)
-nmap <Leader>d <Plug>(lsp-definition)
-nmap <Leader>i <Plug>(lsp-implementation)
-nmap <Leader>c <Plug>(lsp-references)
-nmap <Leader>r <Plug>(lsp-rename)
-nmap <Leader>k <Plug>(lsp-previous-diagnostic)
-nmap <Leader>j <Plug>(lsp-next-diagnostic)
-nmap <Leader>a <Plug>(lsp-code-action-float)
-nmap <Leader>f :LspCodeAction quickfix<CR>
-nmap <Leader>l :LspDocumentDiagnostics<CR>
+let g:ale_linters_explicit = 1
+let g:ale_linters = {
+	\ 'go': ['gopls'],
+	\ 'swift': ['sourcekitlsp'],
+\ }
 
-" Reduce time to feedback after edit
-let g:lsp_semantic_delay = 50
+let g:ale_completion_enabled = 1
 
-" Prevent closing the diagnostic float window after a while
-set updatetime=0
+let g:ale_cursor_detail = 1
+let g:ale_virtualtext_cursor = 'disabled'
 
-" Various highlighting settings
-let g:lsp_document_highlight_enabled = 0
-let g:lsp_diagnostics_highlights_insert_mode_enabled = 0
+let g:ale_floating_preview = 1
+let g:ale_floating_window_border = ['│', '─', '╭', '╮', '╯', '╰', '│', '─']
 
-" Only allow the completion to insert (not remove/replace) in insert mode
-let g:lsp_insert_text_enabled = 1
-let g:lsp_text_edit_enabled = 0
+set splitbelow
 
-" Configure how to set the errors, warnings...
-let g:lsp_diagnostics_enabled = 1
-let g:lsp_diagnostics_float_cursor = 1
-let g:lsp_diagnostics_float_delay = 250
-let g:lsp_diagnostics_float_insert_mode_enabled = 0
-let g:lsp_diagnostics_virtual_text_enabled = 0
+" Fix location list for c, d, t, i
+" TODO enable right linters
+" TODO specific config for astral divide
+" display window after completion
 
-" Configuring signs column
-set signcolumn=auto
-let g:lsp_document_code_action_signs_enabled = 0
-let g:lsp_diagnostics_signs_insert_mode_enabled = 1
-let g:lsp_diagnostics_signs_error = {'text': '✗'}
-let g:lsp_diagnostics_signs_warning = {'text': '⚠️'}
-let g:lsp_diagnostics_signs_hint = {'text': '🔍'}
-let g:lsp_diagnostics_signs_information = {'text': '🛈'}
-
-" Completion behaviour
-let g:asyncomplete_auto_popup = 1
-let g:asyncomplete_auto_completeopt = 0
-let g:asyncomplete_min_chars = 1
-
-" Enable logging when needed
-"let g:lsp_log_file = expand('~/.vim/vim-lsp.log')
-"let g:lsp_log_verbose = 1
+nmap <Leader>t :ALEGoToTypeDefinition<CR>
+nmap <Leader>d :ALEGoToDefinition<CR>
+nmap <Leader>i :ALEGoToImplementation<CR>
+nmap <Leader>c :ALEFindReferences -relative<CR>
+nmap <Leader>r :ALERename<CR>
+nmap <Leader>k :ALEPreviousWrap<CR>
+nmap <Leader>j :ALENextWrap<CR>
+nmap <Leader>a :ALECodeAction<CR>
+nmap <Leader>f :ALEImport<CR>
+nmap <Leader>l :ALEPopulateLocList<CR>
 
 " Plugins
-au User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
-	\ 'name': 'file',
-	\ 'allowlist': ['*'],
-	\ 'priority': 10,
-	\ 'completor': function('asyncomplete#sources#file#completor')
-\ }))
-
-" LSP servers
-
-au User lsp_setup call lsp#register_server({
-	\ 'name': 'swift',
-	\ 'cmd': {server_info->['sourcekit-lsp']},
-	\ 'allowlist': ['swift'],
-	\ 'initialization_options': {
-		\ "swiftPublishDiagnosticsDebounceDuration": 0,
-	\ },
-\ })
-
-au User lsp_setup call lsp#register_server({
-	\ 'name': 'rust',
-	\ 'cmd': {server_info->['rust-analyzer']},
-	\ 'allowlist': ['rust'],
-	\ 'initialization_options': {
-		\ 'completion': {
-			\ 'autoimport': { 'enable': v:true },
-		\ },
-	\ },
-\ })
-
-au User lsp_setup call lsp#register_server({
-	\ 'name': 'go',
-	\ 'cmd': {server_info->['gopls']},
-	\ 'allowlist': ['go'],
-\ })
-au User lsp_setup call lsp#register_server({
-	\ 'name': 'golangci-lint',
-	\ 'cmd': {server_info->['golangci-lint-langserver']},
-	\ 'initialization_options': {
-		\ 'command': ['golangci-lint', 'run', '--out-format', 'json', '--issues-exit-code=1']
-	\ },
-	\ 'allowlist': ['go'],
-\ })
-
-au user lsp_setup call lsp#register_server({
-	\ 'name': 'terraform',
-	\ 'cmd': {server_info->['terraform-ls', 'serve']},
-	\ 'allowlist': ['terraform', 'terraform.vars'],
-\ })
-
-au user lsp_setup call lsp#register_server({
-	\ 'name': 'json',
-	\ 'cmd': {server_info->['npx', 'vscode-json-languageserver', '--stdio']},
-	\ 'allowlist': ['json'],
-\ })
-
-" Per-project settings
-if substitute(getcwd(), '^.*/', '', '') == "astral-divide"
-	au User lsp_setup call lsp#register_server({
-		\ 'name': 'go',
-		\ 'cmd': {server_info->['make', 'lsp']},
-		\ 'allowlist': ['go'],
-	\ })
-	au User lsp_setup call lsp#register_server({
-		\ 'name': 'golangci-lint',
-		\ 'cmd': {server_info->['golangci-lint-langserver']},
-		\ 'initialization_options': {
-			\ 'command': ['make', 'lint-for-lsp']
-		\ },
-		\ 'allowlist': ['go'],
-	\ })
-endif
+"au User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
+"	\ 'name': 'file',
+"	\ 'allowlist': ['*'],
+"	\ 'priority': 10,
+"	\ 'completor': function('asyncomplete#sources#file#completor')
+"\ }))
+"
+"" LSP servers
+"
+"au User lsp_setup call lsp#register_server({
+"	\ 'name': 'swift',
+"	\ 'cmd': {server_info->['sourcekit-lsp']},
+"	\ 'allowlist': ['swift'],
+"	\ 'initialization_options': {
+"		\ 'swiftPublishDiagnosticsDebounceDuration': 0,
+"	\ },
+"\ })
+"
+"au User lsp_setup call lsp#register_server({
+"	\ 'name': 'rust',
+"	\ 'cmd': {server_info->['rust-analyzer']},
+"	\ 'allowlist': ['rust'],
+"	\ 'initialization_options': {
+"		\ 'completion': {
+"			\ 'autoimport': { 'enable': v:true },
+"		\ },
+"	\ },
+"\ })
+"
+"au User lsp_setup call lsp#register_server({
+"	\ 'name': 'go',
+"	\ 'cmd': {server_info->['gopls']},
+"	\ 'allowlist': ['go'],
+"\ })
+"au User lsp_setup call lsp#register_server({
+"	\ 'name': 'golangci-lint',
+"	\ 'cmd': {server_info->['golangci-lint-langserver']},
+"	\ 'initialization_options': {
+"		\ 'command': ['golangci-lint', 'run', '--out-format', 'json', '--issues-exit-code=1']
+"	\ },
+"	\ 'allowlist': ['go'],
+"\ })
+"
+"au user lsp_setup call lsp#register_server({
+"	\ 'name': 'terraform',
+"	\ 'cmd': {server_info->['terraform-ls', 'serve']},
+"	\ 'allowlist': ['terraform', 'terraform.vars'],
+"\ })
+"
+"au user lsp_setup call lsp#register_server({
+"	\ 'name': 'json',
+"	\ 'cmd': {server_info->['npx', 'vscode-json-languageserver', '--stdio']},
+"	\ 'allowlist': ['json'],
+"\ })
+"
+"" Per-project settings
+"if substitute(getcwd(), '^.*/', '', '') == 'astral-divide'
+"	au User lsp_setup call lsp#register_server({
+"		\ 'name': 'go',
+"		\ 'cmd': {server_info->['make', 'lsp']},
+"		\ 'allowlist': ['go'],
+"	\ })
+"	au User lsp_setup call lsp#register_server({
+"		\ 'name': 'golangci-lint',
+"		\ 'cmd': {server_info->['golangci-lint-langserver']},
+"		\ 'initialization_options': {
+"			\ 'command': ['make', 'lint-for-lsp']
+"		\ },
+"		\ 'allowlist': ['go'],
+"	\ })
+"endif
