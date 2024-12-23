@@ -1,10 +1,5 @@
 scriptencoding utf-8
 
-" Prevent vim-polyglot from breaking vim-lsp's float windows. TODO
-" Must be declared before loading the plugins in order to work.
-set nocompatible
-let g:polyglot_disabled = ['sensible']
-
 " Must be configured before loading the gruvbox plugin
 let g:gruvbox_bold = 1
 let g:gruvbox_italics = 0
