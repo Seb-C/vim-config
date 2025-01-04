@@ -24,6 +24,10 @@
 			"initializationOptions": {
 				"swiftPublishDiagnosticsDebounceDuration": 0
 			}
+		},
+		"c++": {
+			"command": "clangd",
+			"filetypes": ["c", "cpp"]
 		}
 	}
 }
