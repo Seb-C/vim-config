@@ -27,7 +27,7 @@
 		},
 		"c++": {
 			"command": "clangd",
-			"filetypes": ["c", "cpp"]
+			"filetypes": ["c", "cpp", "h", "hpp"]
 		}
 	}
 }
