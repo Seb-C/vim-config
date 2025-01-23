@@ -105,9 +105,6 @@ set wildignore+=**/.git/**
 set wildignore+=**/data/**
 set path=$PWD/**
 
-" Close preview scratch window on insert leave
-autocmd InsertLeave * if pumvisible() == 0|pclose|endif
-
 " Languages plugins settings
 autocmd BufRead,BufNewFile terraform.tfvars set filetype=terraform.vars
 
