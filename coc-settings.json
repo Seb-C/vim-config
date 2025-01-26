@@ -27,6 +27,11 @@
 		},
 		"c++": {
 			"command": "clangd",
+			"args": [
+				"--function-arg-placeholders=0",
+				"--clang-tidy",
+				"--header-insertion=iwyu"
+			],
 			"filetypes": ["c", "cpp", "h", "hpp"]
 		}
 	}
