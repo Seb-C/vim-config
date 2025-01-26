@@ -224,3 +224,9 @@ autocmd FileType netrw autocmd BufLeave <buffer> let g:last_netrw_position = lin
 " TODO git integration with signs? https://vim-jp.org/vimdoc-en/sign.html
 " TODO check and configure basic actions
 " TODO replace main shortcut to open it (CTRL-N)?
+
+" Workaround for setting the correct clangd config
+if empty(glob("~/.config/clangd/config.yaml"))
+	silent exec "!mkdir -p ~/.config/clangd/"
+	silent exec "!ln -s ~/.vim/clangd-config.yaml ~/.config/clangd/config.yaml"
+endif
