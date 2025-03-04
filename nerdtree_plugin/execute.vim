@@ -6,6 +6,6 @@ call NERDTreeAddMenuItem({
 
 function! NERDTreeExecute()
   let path = g:NERDTreeFileNode.GetSelected().path.str()
-  execute "silent !open " . shellescape(path, 1) . " &"
+  execute "silent !open " . shellescape(path, 1) . " > /dev/null 2>&1 &"
   redraw!
 endfunction
