@@ -4,7 +4,10 @@
 	"languageserver": {
 		"go": {
 			"command": "gopls",
-			"filetypes": ["go"],
+			"filetypes": ["go", "template"],
+			"initializationOptions": {
+				"templateExtensions": ["tmpl"]
+			}
 		},
 		"golangci-lint-languageserver": {
 			"command": "golangci-lint-langserver",
