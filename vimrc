@@ -121,6 +121,7 @@ let NERDTreeMapQuit=''
 let NERDTreeCascadeSingleChildDir=0
 let NERDTreeCascadeOpenSingleChildDir=0
 let NERDTreeAutoDeleteBuffer=1
+let NERDTreeIgnore=['view/.*_templ\.go$[[path]]']
 
 " Color picker
 let g:vcoolor_lowercase = 0
