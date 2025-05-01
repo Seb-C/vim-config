@@ -16,6 +16,11 @@
 				"command": ["golangci-lint", "run", "--out-format", "json", "--issues-exit-code=1"]
 			}
 		},
+		"go-templ": {
+			"command": "templ",
+			"args": ["lsp"],
+			"filetypes": ["templ"]
+		},
 		"terraform": {
 			"command": "terraform-ls",
 			"args": ["serve"],
