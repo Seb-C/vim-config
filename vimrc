@@ -27,7 +27,7 @@ call plug#begin()
 	Plug 'mbbill/undotree'
 	Plug 'KabbAmine/vCoolor.vim'
 	Plug 'ap/vim-css-color'
-	Plug 'Seb-C/templ.vim', {'branch': 'fixMethods'} " Syntax for go templ engine
+	Plug 'joerdav/templ.vim' " Syntax for go templ engine
 
 	" Color and style
 	Plug 'lifepillar/vim-gruvbox8' " Color scheme itself
