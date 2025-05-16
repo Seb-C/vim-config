@@ -93,7 +93,7 @@ cnoremap <C-y> <Down>
 cnoremap <C-x> <Up>
 
 " Vim file search settings
-set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.build.*\ --ignore=*.min.*\ --ignore=*.svg\ --ignore=*.xml\ --ignore=*.log\ --ignore=cache\ --ignore=.data\ --ignore=*_templ.go\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=sdk\ --ignore=cordova\ --ignore=dist\ --ignore=node_modules\ --ignore=.terraform\ --ignore=vendor\ --ignore=.firefox-profile\ --hidden
+set grepprg=ag\ -Uf\ --vimgrep\ $*\ --ignore='tags'\ --ignore=*.build.*\ --ignore=*.min.*\ --ignore=*.svg\ --ignore=*.xml\ --ignore=*.log\ --ignore=cache\ --ignore=.data\ --ignore=*_templ.go\ --ignore=*_generated.go\ --ignore=logs\ --ignore=.git\ --ignore=data\ --ignore=sdk\ --ignore=cordova\ --ignore=dist\ --ignore=node_modules\ --ignore=.terraform\ --ignore=vendor\ --ignore=.firefox-profile\ --hidden
 set grepformat=%f:%l:%c:%m
 cnoremap <C-G> silent lgrep! -Q 
 set switchbuf=uselast
@@ -122,7 +122,7 @@ let NERDTreeMapQuit=''
 let NERDTreeCascadeSingleChildDir=0
 let NERDTreeCascadeOpenSingleChildDir=0
 let NERDTreeAutoDeleteBuffer=1
-let NERDTreeIgnore=['view/.*_templ\.go$[[path]]']
+let NERDTreeIgnore=['.*_templ\.go$', '.*_generated\.go$']
 
 " Color picker
 let g:vcoolor_lowercase = 0
