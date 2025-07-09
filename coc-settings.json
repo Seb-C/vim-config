@@ -42,5 +42,7 @@
 			],
 			"filetypes": ["c", "cpp", "h", "hpp"]
 		}
-	}
+	},
+	"javascript.autoClosingTags": false,
+	"typescript.autoClosingTags": false,
 }
