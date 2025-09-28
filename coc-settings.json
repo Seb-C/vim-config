@@ -6,7 +6,8 @@
 			"command": "gopls",
 			"filetypes": ["go", "template"],
 			"initializationOptions": {
-				"templateExtensions": ["tmpl"]
+				"templateExtensions": ["tmpl"],
+				"staticcheck": false
 			}
 		},
 		"golangci-lint-languageserver": {
