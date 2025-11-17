@@ -115,6 +115,7 @@ nnoremap <silent> <C-N> :NERDTreeToggle<CR>
 let NERDTreeQuitOnOpen=1
 let g:NERDTreeChDirMode=2
 let g:NERDTreeStatusline = 'NERDTree'
+let NERDTreeCaseSensitiveSort=1
 let NERDTreeShowHidden=1
 let NERDTreeMapOpenSplit='s'
 let NERDTreeMapOpenVSplit='v'
