@@ -39,7 +39,8 @@
 			"args": [
 				"--function-arg-placeholders=0",
 				"--clang-tidy",
-				"--header-insertion=iwyu"
+				"--header-insertion=iwyu",
+				"--limit-results=0"
 			],
 			"filetypes": ["c", "cpp", "h", "hpp"]
 		}
