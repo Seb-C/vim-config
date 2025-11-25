@@ -161,6 +161,7 @@ set softtabstop=4
 set shiftwidth=4
 set tabstop=4
 set indentkeys=''
+set cinoptions+=#1s " Fix preprocessor indent for C++
 
 set ruler
 
