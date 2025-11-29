@@ -40,6 +40,9 @@
 				"--function-arg-placeholders=0",
 				"--clang-tidy",
 				"--header-insertion=iwyu",
+				"--limit-references=0",
+				"--rename-file-limit=0",
+				"--enable-config",
 				"--limit-results=0"
 			],
 			"filetypes": ["c", "cpp", "h", "hpp"]
