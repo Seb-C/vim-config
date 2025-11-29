@@ -34,7 +34,7 @@
 				"swiftPublishDiagnosticsDebounceDuration": 0
 			}
 		},
-		"clangd": {
+		"c++": {
 			"command": "clangd",
 			"args": [
 				"--function-arg-placeholders=0",
@@ -45,17 +45,6 @@
 				"--enable-config",
 				"--limit-results=0"
 			],
-			"filetypes": ["c", "cpp", "h", "hpp"]
-		},
-		"ccls": {
-			"command": "ccls",
-			"rootPatterns": [".ccls"],
-			"initializationOptions": {
-				"compilationDatabaseDirectory": "build",
-				"cache": {
-					"directory": "build/.ccls-cache"
-				}
-			},
 			"filetypes": ["c", "cpp", "h", "hpp"]
 		}
 	},
