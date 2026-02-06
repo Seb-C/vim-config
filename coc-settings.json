@@ -37,6 +37,7 @@
 		"c++": {
 			"command": "clangd",
 			"args": [
+				"--experimental-modules-support",
 				"--function-arg-placeholders=0",
 				"--clang-tidy",
 				"--header-insertion=iwyu",
