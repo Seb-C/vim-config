@@ -63,6 +63,7 @@ nmap <Leader>f <Plug>(coc-fix-current)
 nmap <Leader>l :CocDiagnostics<CR>
 nmap <Leader>o :CocOutline<CR>
 nmap <Leader>p :silent CocRestart<CR>
+command CocOpenLogFromLsp CocCommand workspace.showOutput
 
 " Storing undo
 set undodir=$HOME/.vim/undo
