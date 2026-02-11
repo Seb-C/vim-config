@@ -38,6 +38,7 @@
 			"command": "clangd-21",
 			"args": [
 				"--experimental-modules-support",
+				"--log=verbose",
 				"--function-arg-placeholders=0",
 				"--clang-tidy",
 				"--header-insertion=iwyu",

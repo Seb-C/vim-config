@@ -1,5 +1,13 @@
+Index:
+  Background: Build
 Diagnostics:
   ClangTidy:
     FastCheckFilter: None
 Completion:
   ArgumentLists: None
+Documentation:
+  CommentFormat: Plaintext
+Hover:
+  ShowAKA: true
+InlayHints:
+  Enabled: false
