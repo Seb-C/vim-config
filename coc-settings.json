@@ -35,7 +35,7 @@
 			}
 		},
 		"c++": {
-			"command": "clangd-21",
+			"command": "clangd-19",
 			"args": [
 				"--experimental-modules-support",
 				"--log=verbose",
