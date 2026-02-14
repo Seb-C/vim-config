@@ -37,7 +37,6 @@
 		"c++": {
 			"command": "clangd-19",
 			"args": [
-				"--experimental-modules-support",
 				"--log=verbose",
 				"--function-arg-placeholders=0",
 				"--clang-tidy",
