@@ -49,7 +49,7 @@ set completeopt=menu,noinsert,noselect,menuone,preview
 set complete-=i
 
 " rust-analyzer does not work in standalone, could not find the reason
-let g:coc_global_extensions = ['coc-rust-analyzer', 'coc-json', 'coc-tsserver', 'coc-eslint', '@yaegassy/coc-volar']
+let g:coc_global_extensions = ['coc-rust-analyzer', 'coc-json', 'coc-tsserver', 'coc-eslint', '@yaegassy/coc-volar', 'coc-biome']
 
 " Keybindings for coc.nvim
 nmap <Leader>t <Plug>(coc-type-definition)
