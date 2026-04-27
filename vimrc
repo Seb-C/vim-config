@@ -32,6 +32,7 @@ call plug#begin()
 	" Color and style
 	Plug 'lifepillar/vim-gruvbox8' " Color scheme itself
 	Plug 'vim-airline/vim-airline' " Better status bar on the bottom
+	Plug 'habamax/vim-godot'
 
 	" Quality of life
 	Plug 'romainl/vim-qf' " Quickfix window improvements
@@ -48,7 +49,7 @@ set omnifunc=syntaxcomplete#Complete
 set completeopt=menu,noinsert,noselect,menuone,preview
 set complete-=i
 
-let g:coc_global_extensions = ['coc-json', 'coc-tsserver', 'coc-biome', 'coc-eslint']
+let g:coc_global_extensions = ['coc-json', 'coc-tsserver', 'coc-biome', 'coc-eslint', 'coc-gdscript']
 
 " Keybindings for coc.nvim
 nmap <Leader>t <Plug>(coc-type-definition)
