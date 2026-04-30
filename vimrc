@@ -6,6 +6,9 @@ let g:gruvbox_italics = 0
 let g:gruvbox_italicize_strings = 0
 let g:gruvbox_plugin_hi_groups = 0 " Breaks compatibility with NERDTree
 
+" Disable some annoying highlightings
+let g:polyglot_disabled = ['csv']
+
 " Plugin manager, use :PlugInstall to apply changes
 call plug#begin()
 	" Git-related
