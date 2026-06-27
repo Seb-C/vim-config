@@ -36,6 +36,7 @@ call plug#begin()
 	Plug 'lifepillar/vim-gruvbox8' " Color scheme itself
 	Plug 'vim-airline/vim-airline' " Better status bar on the bottom
 	Plug 'habamax/vim-godot'
+	Plug 'styled-components/vim-styled-components' " CSS in JSX
 
 	" Quality of life
 	Plug 'romainl/vim-qf' " Quickfix window improvements
