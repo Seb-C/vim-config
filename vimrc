@@ -53,7 +53,7 @@ set omnifunc=syntaxcomplete#Complete
 set completeopt=menu,noinsert,noselect,menuone,preview
 set complete-=i
 
-let g:coc_global_extensions = ['coc-json', 'coc-tsserver', 'coc-biome', 'coc-eslint', 'coc-gdscript']
+let g:coc_global_extensions = ['coc-json', 'coc-tsserver', 'coc-biome', 'coc-eslint', 'coc-gdscript', 'coc-styled-components']
 
 " Keybindings for coc.nvim
 nmap <Leader>t <Plug>(coc-type-definition)
